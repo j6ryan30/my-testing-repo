@@ -3,7 +3,11 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="mb-4">📊 Dashboard</h1>
-    <p>Welcome, <strong>{{ session.username }}</strong></p>
+   <p>
+Welcome,
+<strong>{{ session.username }}</strong>
+({{ session.role }})
+</p>
 
     <div class="row g-4">
         <!-- Checkout Card -->
