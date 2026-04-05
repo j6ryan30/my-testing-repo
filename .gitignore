@@ -4,3 +4,6 @@ books.db
 static/barcodes/
 __pycache__/
 *.pyc
+instance/
+.env
+venv/
