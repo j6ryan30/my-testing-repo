@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 style="color:red;">DASHBOARD LOADED</h1>
+<h2>
+
+📊 Dashboard
+
+</h2>
+
+<p>
+
+Welcome,
+
+<strong>
+
+{{ session.username }}
+
+</strong>
+
+</p>
+
+<div class="row">
+
+<div class="col-md-6">
+
+<div class="card">
+
+<div class="card-body">
+
+<h5>
+
+📚 Manage Inventory
+
+</h5>
+
+<a href="{{ url_for('books') }}"
+class="btn btn-primary">
+
+View Books
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

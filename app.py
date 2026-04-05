@@ -1,12 +1,47 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 from functools import wraps
+from database import init_db, create_users
+
+init_db()
+create_users()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
 DB_NAME = "books.db"
+# -----------------------------
+# GENERATE BARCODE FROM ISBN
+# -----------------------------
+import barcode
+from barcode.writer import ImageWriter
+import os
 
+BARCODE_FOLDER = "static/barcodes"
+
+# Create folder if not exists
+if not os.path.exists(BARCODE_FOLDER):
+    os.makedirs(BARCODE_FOLDER)
+
+
+def generate_barcode(isbn):
+
+    barcode_path = os.path.join(
+        BARCODE_FOLDER,
+        f"{isbn}"
+    )
+
+    if not os.path.exists(barcode_path + ".png"):
+
+        code128 = barcode.get(
+            "code128",
+            isbn,
+            writer=ImageWriter()
+        )
+
+        code128.save(barcode_path)
+
+    return f"barcodes/{isbn}.png"
 
 # -----------------------------
 # DATABASE CONNECTION
@@ -66,7 +101,7 @@ def login():
             session["username"] = user["username"]
 
             # Default role assignment
-            session["role"] = "admin"
+            session["role"] = user["role"]
 
             return redirect(url_for("dashboard"))
 
@@ -237,29 +272,10 @@ def logout():
     flash("Logged out successfully.")
 
     return redirect(url_for("login"))
-
-
 # -----------------------------
-# CREATE ROLES IN SYSTEM
+# GENERATE BARCODE FROM ISBN
 # -----------------------------
-def create_roles():
 
-    conn = get_db_connection()
-
-    try:
-
-        conn.execute("""
-            ALTER TABLE users
-            ADD COLUMN role TEXT DEFAULT 'admin'
-        """)
-
-        conn.commit()
-
-    except:
-
-        pass
-
-    conn.close()
 
 
 # -----------------------------
@@ -267,6 +283,6 @@ def create_roles():
 # -----------------------------
 if __name__ == "__main__":
 
-    create_roles()
+   
 
     app.run(debug=True)
