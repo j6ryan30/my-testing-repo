@@ -1,11 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
+<<<<<<< HEAD
 from wtforms import StringField, FloatField, TextAreaField, SubmitField, PasswordField, ValidationError
 from wtforms.validators import DataRequired, Email, NumberRange, Length
 from flask_wtf import FlaskForm
 from functools import wraps
 import hashlib
 import os
+=======
+from datetime import datetime
+import barcode
+from barcode.writer import ImageWriter
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
@@ -31,6 +37,7 @@ class User(db.Model):
 
 
 class Book(db.Model):
+<<<<<<< HEAD
     """Book model for inventory."""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -47,8 +54,15 @@ class Book(db.Model):
             'price': self.price,
             'description': self.description
         }
+=======
+>>>>>>> 294f536 (Updated database models and barcode features)
 
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
+<<<<<<< HEAD
 # ==================== FORMS WITH VALIDATION ====================
 class AddBookForm(FlaskForm):
     """Form to add a new book."""
@@ -68,6 +82,73 @@ class AddBookForm(FlaskForm):
         Length(max=1000, message='Description cannot exceed 1000 characters')
     ])
     submit = SubmitField('Add Book')
+=======
+    title = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    author = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    isbn = db.Column(
+        db.String(20),
+        unique=True,
+        nullable=False
+    )
+
+    price = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    quantity = db.Column(
+        db.Integer,
+        nullable=False
+    )
+class Sale(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    date = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    # Link to book
+    book_id = db.Column(
+        db.Integer,
+        db.ForeignKey('book.id'),
+        nullable=False
+    )
+
+    # Quantity sold
+    quantity = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    # Store calculated values
+    subtotal = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    tax = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    total = db.Column(
+        db.Float,
+        nullable=False
+    )
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 
 class EditBookForm(FlaskForm):
@@ -136,6 +217,7 @@ def api_books():
     books = Book.query.all()
     return jsonify([book.to_dict() for book in books])
 
+<<<<<<< HEAD
 
 @app.route('/api/books/<int:book_id>')
 def api_book_detail(book_id):
@@ -144,6 +226,24 @@ def api_book_detail(book_id):
     if not book:
         return jsonify({'error': 'Book not found'}), 404
     return jsonify(book.to_dict())
+=======
+        User(
+            username="ROwens03",
+            password="ROwens03",
+            role="admin"
+        ),
+        User(
+            username="CPowersQA",
+            password="CPowersQA",
+            role="admin"
+        ),
+        User(
+            username="FAlmasri01",
+            password="FAlmasri01",
+            role="user"
+        )
+    ]
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -181,6 +281,7 @@ def inventory():
 @app.route('/add-book', methods=['GET', 'POST'])
 @login_required
 def add_book():
+<<<<<<< HEAD
     """Handle adding a new book."""
     form = AddBookForm()
     if form.validate_on_submit():
@@ -195,6 +296,48 @@ def add_book():
         flash(f'Book "{new_book.title}" added successfully!', 'success')
         return redirect(url_for('inventory'))
     return render_template('add_book.html', form=form)
+=======
+
+    if request.method == 'POST':
+
+        try:
+
+            title = request.form['title']
+            author = request.form['author']
+            isbn = request.form['isbn']
+            price = float(request.form['price'])
+            quantity = int(request.form['quantity'])
+
+
+            new_book = Book(
+                title=title,
+                author=author,
+                isbn=isbn,
+                price=price,
+                quantity=quantity
+            )
+
+            db.session.add(new_book)
+            db.session.commit()
+
+            flash(
+                f"Book '{title}' added successfully!",
+                "success"
+            )
+
+            return redirect(url_for('books'))
+
+        except Exception as e:
+
+            flash(
+                f"Error adding book: {e}",
+                "danger"
+            )
+
+            return redirect(url_for('add_book'))
+
+    return render_template('add_book.html')
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 
 @app.route('/edit-book/<int:book_id>', methods=['GET', 'POST'])
@@ -222,8 +365,16 @@ def edit_book(book_id):
     return render_template('edit_book.html', form=form, book=book)
 
 
+<<<<<<< HEAD
 @app.route('/delete-book/<int:book_id>', methods=['POST'])
 @login_required
+=======
+# --------------------------
+# Delete Book
+# --------------------------
+
+@app.route('/delete_book/<int:book_id>')
+>>>>>>> 294f536 (Updated database models and barcode features)
 def delete_book(book_id):
     """Handle deleting a book."""
     book = Book.query.get_or_404(book_id)
@@ -234,28 +385,218 @@ def delete_book(book_id):
     return redirect(url_for('inventory'))
 
 
+<<<<<<< HEAD
 @app.route('/about')
 def about():
     """Display the about page."""
     return render_template('about.html')
+=======
+# --------------------------
+# Barcode Generator
+# --------------------------
+
+@app.route('/generate_barcode/<int:book_id>')
+def generate_barcode(book_id):
+
+    book = Book.query.get_or_404(book_id)
+
+    isbn = book.isbn
+
+    code = barcode.get(
+        'isbn13',
+        isbn,
+        writer=ImageWriter()
+    )
+
+    code.save(
+        f"static/barcodes/{isbn}"
+    )
+
+    flash(
+        "Barcode generated successfully!",
+        "success"
+    )
+
+    return redirect(
+        url_for('books')
+    )
+
+# --------------------------
+# Checkout
+# --------------------------
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     """Handle contact form."""
     if request.method == 'POST':
+<<<<<<< HEAD
         name = request.form.get('name')
         email = request.form.get('email')
         message = request.form.get('message')
         # In a real app, you would save this or send an email
         return render_template('contact.html', success=True, name=name)
     return render_template('contact.html')
+=======
 
+        try:
 
+            book_id = int(
+                request.form['book_id']
+            )
+
+            quantity = int(
+                request.form['quantity']
+            )
+
+            book = Book.query.get(book_id)
+
+            if book.quantity < quantity:
+
+                flash(
+                    "Not enough stock.",
+                    "danger"
+                )
+
+                return redirect(
+                    url_for('checkout')
+                )
+
+            subtotal = book.price * quantity
+
+            tax = subtotal * 0.07
+
+            total = subtotal + tax
+
+            sale = Sale(
+
+                book_id=book.id,
+
+                quantity=quantity,
+
+                subtotal=subtotal,
+
+                tax=tax,
+
+                total=total
+
+            )
+
+            db.session.add(sale)
+
+            # Update inventory
+            book.quantity -= quantity
+
+            # Auto reorder
+            if book.quantity <= 5:
+
+                order = PurchaseOrder(
+
+                    book_id=book.id,
+
+                    quantity=10
+
+                )
+
+                db.session.add(order)
+
+            db.session.commit()
+
+            flash(
+                "Sale completed!",
+                "success"
+            )
+
+            return redirect(
+                url_for('dashboard')
+            )
+
+        except Exception as e:
+
+            flash(
+                f"Error: {e}",
+                "danger"
+            )
+
+            return redirect(
+                url_for('checkout')
+            )
+
+    books = Book.query.all()
+
+    return render_template(
+        'checkout.html',
+        books=books
+    )
+@app.route("/receipt/<int:sale_id>")
+def receipt(sale_id):
+>>>>>>> 294f536 (Updated database models and barcode features)
+
+    sale = Sale.query.get_or_404(
+        sale_id
+    )
+
+<<<<<<< HEAD
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
     return render_template('404.html'), 404
+=======
+    return render_template(
+        "receipt.html",
+        sale=sale
+    )
+# --------------------------
+# Sales History
+# --------------------------
+
+@app.route('/sales_history')
+def sales_history():
+
+    sales = Sale.query.order_by(
+        Sale.date.desc()
+    ).all()
+
+    return render_template(
+        'sales_history.html',
+        sales=sales
+    )
+# --------------------------
+# Low Stock
+# --------------------------
+
+@app.route('/low_stock')
+def low_stock():
+
+    threshold = 5
+
+    low_stock_books = Book.query.filter(
+        Book.quantity <= threshold
+    ).all()
+
+    return render_template(
+        'low_stock.html',
+        books=low_stock_books,
+        threshold=threshold
+    )
+
+# --------------------------
+# Purchase Orders
+# --------------------------
+
+@app.route('/purchase_orders')
+def purchase_orders():
+
+    orders = PurchaseOrder.query.all()
+    books = Book.query.all()
+
+    return render_template(
+        'purchase_orders.html',
+        orders=orders,
+        books=books
+    )
+>>>>>>> 294f536 (Updated database models and barcode features)
 
 
 @app.errorhandler(500)
