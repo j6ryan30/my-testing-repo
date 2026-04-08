@@ -54,8 +54,7 @@ class Book(db.Model):
         nullable=False
     )
 class Sale(db.Model):
-
-    id = db.Column(
+        id = db.Column(
         db.Integer,
         primary_key=True
     )
