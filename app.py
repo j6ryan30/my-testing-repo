@@ -230,6 +230,13 @@ def dashboard():
 # --------------------------
 # Book Management
 # --------------------------
+@app.route('/inventory')
+def inventory():
+    books = Book.query.all()
+    return render_template(
+        'books.html',
+        books=books
+    )
 
 @app.route('/books')
 def books():
