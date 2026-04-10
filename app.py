@@ -194,7 +194,7 @@ def generate_barcode(book_id):
     # Ensure directory exists
     if not os.path.exists('static/barcodes'):
         os.makedirs('static/barcodes')
-    code = barcode.get('isbn13', isbn, writer=ImageWriter())
+    code = barcode.get('code128', isbn, writer=ImageWriter())
     code.save(f"static/barcodes/{isbn}")
     flash("Barcode generated successfully!", "success")
     return redirect(url_for('inventory'))
