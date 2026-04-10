@@ -11,8 +11,9 @@ import barcode
 from barcode.writer import ImageWriter
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this'
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bookstore.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
