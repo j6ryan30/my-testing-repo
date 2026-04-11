@@ -3,112 +3,56 @@
 {% block title %}Edit Book: {{ book.title }} - Noble Bookstore{% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <div class="form-box">
-        <h1>Edit Book: {{ book.title }}</h1>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">Edit Book Details</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="book-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label fw-bold") }}
+                            {{ form.title(class="form-control", placeholder="Enter book title") }}
+                        </div>
 
-        <form method="POST" class="book-form">
-            {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.author.label(class="form-label fw-bold") }}
+                            {{ form.author(class="form-control", placeholder="Enter author name") }}
+                        </div>
 
-            <div class="form-group">
-                {{ form.title.label(class="form-label") }}
-                {{ form.title(class="form-control") }}
-                {% if form.title.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.title.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                        <div class="mb-3">
+                            {{ form.isbn.label(class="form-label fw-bold") }}
+                            {{ form.isbn(class="form-control", placeholder="Enter ISBN") }}
+                        </div>
 
-            <div class="form-group">
-                {{ form.author.label(class="form-label") }}
-                {{ form.author(class="form-control") }}
-                {% if form.author.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.author.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.price.label(class="form-label fw-bold") }}
+                                {{ form.price(class="form-control", step="0.01") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.quantity.label(class="form-label fw-bold") }}
+                                {{ form.quantity(class="form-control", min="0") }}
+                            </div>
+                        </div>
 
-            <div class="form-group">
-                {{ form.isbn.label(class="form-label") }}
-                {{ form.isbn(class="form-control") }}
-                {% if form.isbn.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.isbn.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label fw-bold") }}
+                            {{ form.description(class="form-control", rows="4") }}
+                        </div>
 
-            <div class="form-group">
-                {{ form.quantity.label(class="form-label") }}
-                {{ form.quantity(class="form-control") }}
-                {% if form.quantity.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.quantity.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger rounded-pill">Save Changes</button>
+                            <a href="{{ url_for('inventory') }}" class="btn btn-outline-secondary rounded-pill">Cancel</a>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <div class="form-group">
-                {{ form.price.label(class="form-label") }}
-                {{ form.price(class="form-control") }}
-                {% if form.price.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.price.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                {{ form.description.label(class="form-label") }}
-                {{ form.description(class="form-control") }}
-                {% if form.description.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.description.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-<div class="form-group">
-                {{ form.price.label(class="form-label") }}
-                {{ form.price(class="form-control") }}
-                {% if form.price.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.price.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                {{ form.description.label(class="form-label") }}
-                {{ form.description(class="form-control") }}
-                {% if form.description.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.description.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-            <div class="form-actions">
-                {{ form.submit(class="action-button") }}
-                <a href="{{ url_for('inventory') }}" class="action-button action-button--secondary">Cancel</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}
