@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Sales History & Revenue</h3>
+    <table class="table table-hover shadow-sm mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>Qty</th>
+                <th>Subtotal</th>
+                <th>Tax (7%)</th>
+                <th>Total</th>
+                <th>Receipt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ sale.quantity }}</td>
+                <td>${{ "%.2f"|format(sale.subtotal) }}</td>
+                <td>${{ "%.2f"|format(sale.tax) }}</td>
+                <td class="fw-bold text-danger">${{ "%.2f"|format(sale.total) }}</td>
+                <td><a href="{{ url_for('receipt', sale_id=sale.id) }}" class="btn btn-sm btn-outline-dark">Print</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

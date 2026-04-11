@@ -1,13 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-#
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-#
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime
-#
 import barcode
-#
 from barcode.writer import ImageWriter
-#
+
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -17,9 +14,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.login_view = 'login' # Tells Flask where the login page is
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
 # --------------------------
 # Database Models
 # --------------------------
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, FloatField, IntegerField, TextAreaField, SubmitField
+from wtforms.validators import DataRequired
+
+class AddBookForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    author = StringField('Author', validators=[DataRequired()])
+    isbn = StringField('ISBN', validators=[DataRequired()])
+    price = FloatField('Price', validators=[DataRequired()])
+    quantity = IntegerField('Quantity', validators=[DataRequired()])
+    description = TextAreaField('Description')
+    submit = SubmitField('Add Book')
 
 class Book(db.Model):
 
@@ -110,7 +128,7 @@ class Supplier(db.Model):
     contact = db.Column(db.String(100))
 
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(
         db.String(100),
@@ -186,24 +204,23 @@ def create_default_users():
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
     if request.method == 'POST':
-
         username = request.form['username']
         password = request.form['password']
-
-        user = User.query.filter_by(
-            username=username,
-            password=password
-        ).first()
+        user = User.query.filter_by(username=username, password=password).first()
 
         if user:
-
-            session['username'] = user.username
-            session['role'] = user.role
-
-            return redirect(url_for('dashboard'))
-
+            login_user(user)
+            flash(f"Welcome back, {user.username}!", "success")
+            
+            next_page = request.args.get('next')
+            if not next_page or next_page == '/logout':
+                next_page = url_for('dashboard')
+                
+            return redirect(next_page)
         else:
             flash("Invalid login credentials", "danger")
 
@@ -211,17 +228,11 @@ def login():
 
 @app.route('/logout')
 def logout():
+    # Officially ends the Flask-Login session
+    logout_user()
+    flash("Logged out successfully.", "success")
+    return redirect(url_for('login'))
 
-    session.clear()
-
-    flash(
-        "Logged out successfully.",
-        "success"
-    )
-
-    return redirect(
-        url_for('login')
-    )
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -237,15 +248,13 @@ def contact():
 # --------------------------
 
 @app.route('/dashboard')
+@login_required # This replaces your 'if username not in session' check
 def dashboard():
-
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
+    # current_user is a special object that always knows who is logged in
     return render_template(
         'dashboard.html',
-        username=session['username'],
-        role=session['role']
+        username=current_user.username,
+        role=current_user.role
     )
 
 
@@ -253,66 +262,40 @@ def dashboard():
 # Book Management
 # --------------------------
 @app.route('/inventory')
+@login_required 
 def inventory():
     books = Book.query.all()
-    return render_template(
-        'books.html',
-        books=books
-    )
+    return render_template('books.html', books=books, os=os)
 
 @app.route('/books')
 def books():
-
-    all_books = Book.query.all()
-
-    return render_template(
-        'books.html',
-        books=all_books
-    )
+    return redirect(url_for('inventory'))
 
 
 @app.route('/add_book', methods=['GET', 'POST'])
 def add_book():
-
-    if request.method == 'POST':
-
+    form = AddBookForm() # Create the form object
+    
+    if form.validate_on_submit():
         try:
-
-            title = request.form['title']
-            author = request.form['author']
-            isbn = request.form['isbn']
-            price = float(request.form['price'])
-            quantity = int(request.form['quantity'])
-
-
             new_book = Book(
-                title=title,
-                author=author,
-                isbn=isbn,
-                price=price,
-                quantity=quantity
+                title=form.title.data,
+                author=form.author.data,
+                isbn=form.isbn.data,
+                price=form.price.data,
+                quantity=form.quantity.data
             )
-
             db.session.add(new_book)
             db.session.commit()
-
-            flash(
-                f"Book '{title}' added successfully!",
-                "success"
-            )
-
-            return redirect(url_for('books'))
-
+            flash(f"Book '{form.title.data}' added successfully!", "success")
+            return redirect(url_for('inventory'))
+            
         except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding book: {e}", "danger")
 
-            flash(
-                f"Error adding book: {e}",
-                "danger"
-            )
-
-            return redirect(url_for('add_book'))
-
-    return render_template('add_book.html')
+    # The CRITICAL part: Passing the form to the template
+    return render_template('add_book.html', form=form)
 
 
 @app.route('/edit_book/<int:book_id>', methods=['GET', 'POST'])
@@ -395,9 +378,9 @@ def generate_barcode(book_id):
     book = Book.query.get_or_404(book_id)
 
     isbn = book.isbn
-
+    # Use'code128' to accept any numbers/tex
     code = barcode.get(
-        'isbn13',
+        'code128',
         isbn,
         writer=ImageWriter()
     )
@@ -415,88 +398,72 @@ def generate_barcode(book_id):
         url_for('books')
     )
 
+# TASK: Barcode Lookup Logic
+@app.route('/api/check_book/<isbn>')
+def api_check_book(isbn):
+    book = Book.query.filter_by(isbn=isbn).first()
+    if book:
+        return jsonify({
+            'success': True,
+            'id': book.id,
+            'title': book.title,
+            'price': book.price,
+            'stock': book.quantity
+        })
+    return jsonify({'success': False, 'message': 'Book not found'})
+
 # --------------------------
 # Checkout
 # --------------------------
 @app.route('/checkout', methods=['GET', 'POST'])
+@login_required
 def checkout():
-
+    # Fetch books for the dropdown menu
+    books = Book.query.all()
+    
     if request.method == 'POST':
-
         try:
-
-            selected_book_id = int(
-                request.form['book_id']
-            )
-
-            quantity = int(
-                request.form['quantity']
-            )
-
-            book = Book.query.get_or_404(
-                selected_book_id
-            )
-
-            # Calculate totals
-            subtotal = book.price * quantity
-
-            tax = subtotal * 0.07
-
-            total = subtotal + tax
-
-            # Reduce inventory
+            selected_book_id = int(request.form['book_id'])
+            quantity = int(request.form['quantity'])
+            
+            book = Book.query.get_or_404(selected_book_id)
+            
+            # Logic Guard: Prevent selling more than you have
             if book.quantity < quantity:
-
-                flash(
-                    "Not enough stock available!",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for('checkout')
-                )
-
-            book.quantity -= quantity
-
-            # Save sale
-            sale = Sale(
+                flash(f"Not enough stock! Only {book.quantity} copies left.", "danger")
+                return redirect(url_for('checkout'))
+            
+            # Financials (Using Maryland's 6% sales tax)
+            subtotal = book.price * quantity
+            tax = subtotal * 0.06
+            total = subtotal + tax
+            
+            # Create the Sale record (The Audit Trail)
+            new_sale = Sale(
                 book_id=book.id,
                 quantity=quantity,
-                subtotal=subtotal,
-                tax=tax,
-                total=total
+                subtotal=round(subtotal, 2),
+                tax=round(tax, 2),
+                total=round(total, 2),
+                date=datetime.now()
             )
-
-            db.session.add(sale)
-
+            
+            # Update inventory count
+            book.quantity -= quantity
+            
+            # Save both the new sale and the inventory change
+            db.session.add(new_sale)
             db.session.commit()
-
-            flash(
-                "Sale completed!",
-                "success"
-            )
-
-            return redirect(
-                url_for('receipt', sale_id=sale.id)
-            )
-
+            
+            flash(f"Successfully sold {quantity}x {book.title}!", "success")
+            return redirect(url_for('sales_history'))
+            
         except Exception as e:
-
-            flash(
-                f"Error processing sale: {e}",
-                "danger"
-            )
-
-            return redirect(
-                url_for('checkout')
-            )
-
-    books = Book.query.all()
-
-    return render_template(
-        'checkout.html',
-        books=books
-    )
+            db.session.rollback()
+            flash(f"Transaction Error: {str(e)}", "danger")
+            return redirect(url_for('checkout'))
+            
+    return render_template('checkout.html', books=books)
 
 @app.route("/receipt/<int:sale_id>")
 def receipt(sale_id):
@@ -597,6 +564,25 @@ def add_purchase_order():
 # Suppliers
 # --------------------------
 
+@app.route('/seed_suppliers')
+@login_required
+def seed_suppliers():
+    # Adding default Maryland/Regional suppliers for your demo
+    demo_suppliers = [
+        Supplier(name="Baltimore Book Distrib.", contact="orders@bmorebooks.com"),
+        Supplier(name="Annapolis Paper Co.", contact="410-555-0199"),
+        Supplier(name="DC Scholastic Hub", contact="dc-sales@scholastic.com")
+    ]
+    
+    for s in demo_suppliers:
+        existing = Supplier.query.filter_by(name=s.name).first()
+        if not existing:
+            db.session.add(s)
+            
+    db.session.commit()
+    flash("Demo suppliers generated!", "info")
+    return redirect(url_for('suppliers'))
+
 @app.route('/suppliers')
 def suppliers():
 
@@ -610,52 +596,40 @@ def suppliers():
 
 @app.route('/add_supplier', methods=['POST'])
 def add_supplier():
-
     try:
-
         name = request.form['name']
         contact = request.form.get('contact', '')
 
-        supplier = Supplier(
-            name=name,
-            contact=contact
-        )
+        # TASK: Validate Supplier (Check for duplicates)
+        existing = Supplier.query.filter_by(name=name).first()
+        if existing:
+            flash(f"Supplier '{name}' already exists!", "warning")
+            return redirect(url_for('suppliers'))
 
+        supplier = Supplier(name=name, contact=contact)
         db.session.add(supplier)
         db.session.commit()
-
-        flash(
-            "Supplier added.",
-            "success"
-        )
+        flash("Supplier added successfully!", "success")
 
     except Exception as e:
+        flash(f"Error adding supplier: {e}", "danger")
 
-        flash(
-            f"Error adding supplier: {e}",
-            "danger"
-        )
-
-    return redirect(
-        url_for('suppliers')
-    )
+    return redirect(url_for('suppliers'))
 # --------------------------
 # Main
-# --------------------------
-# --------------------------
-# Main
-# --------------------------
 
 import os
 
 with app.app_context():
+    # TEMPORARY: Wipe and rebuild (Uncomment for the reset)
+    #db.drop_all() 
+    
+    os.makedirs('static/barcodes', exist_ok=True) 
     db.create_all()
     create_default_users()
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 5000))
-
     app.run(
         host="0.0.0.0",
         port=port
