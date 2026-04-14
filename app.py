@@ -72,6 +72,12 @@ class Book(db.Model):
         db.Integer,
         nullable=False
     )
+
+    description = db.Column(
+        db.Text, 
+        nullable=True
+    )
+
 class Sale(db.Model):
     id = db.Column(
         db.Integer,
@@ -302,15 +308,20 @@ def add_book():
     
     if form.validate_on_submit():
         try:
+# Create the new book object using data from the form
             new_book = Book(
                 title=form.title.data,
                 author=form.author.data,
                 isbn=form.isbn.data,
                 price=form.price.data,
-                quantity=form.quantity.data
+                quantity=form.quantity.data,
+                description=form.description.data
             )
+            
+            # Save it to the database
             db.session.add(new_book)
             db.session.commit()
+
             flash(f"Book '{form.title.data}' added successfully!", "success")
             return redirect(url_for('inventory'))
             
