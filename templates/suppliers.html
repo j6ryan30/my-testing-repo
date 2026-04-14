@@ -21,29 +21,35 @@
         </div>
 
         <div class="col-md-8">
-            <table class="table table-striped shadow-sm">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Supplier Name</th>
-                        <th>Contact Info</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for supplier in suppliers %}
-                    <tr>
-                        <td>#{{ supplier.id }}</td>
-                        <td class="fw-bold">{{ supplier.name }}</td>
-                        <td>{{ supplier.contact or 'N/A' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="text-center text-muted py-4">No suppliers found. Click "Generate Demo Data" to populate!</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-{% endblock %}
+    <table class="table table-striped shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Supplier Name</th>
+                <th>Contact Info</th>
+                <th class="text-center">Actions</th> </tr>
+        </thead>
+        <tbody>
+            {% for supplier in suppliers %}
+            <tr>
+                <td>#{{ supplier.id }}</td>
+                <td class="fw-bold">{{ supplier.name }}</td>
+                <td>{{ supplier.contact or 'N/A' }}</td>
+                
+                <td class="text-center">
+                    <form action="{{ url_for('delete_supplier', id=supplier.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                onclick="return confirm('Are you sure you want to remove this supplier?')">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center text-muted py-4">No suppliers found. Click "Generate Demo Data" to populate!</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div> </div> </div> {% endblock %}

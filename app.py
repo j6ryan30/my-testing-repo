@@ -72,7 +72,6 @@ class Book(db.Model):
         nullable=False
     )
 class Sale(db.Model):
-
     id = db.Column(
         db.Integer,
         primary_key=True
@@ -88,6 +87,24 @@ class Sale(db.Model):
         db.Integer,
         db.ForeignKey('book.id'),
         nullable=False
+    )
+
+    # --- NEW: Snapshot Data for History ---
+    book_title = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    book_isbn = db.Column(
+        db.String(20),
+        nullable=False
+    )
+
+    # --- UPDATED: Allow Guests (nullable=True) ---
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('user.id'),
+        nullable=True # <--- Set this to True for Guests
     )
 
     # Quantity sold
@@ -110,7 +127,7 @@ class Sale(db.Model):
     total = db.Column(
         db.Float,
         nullable=False
-    )
+    )    
 class PurchaseOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(
@@ -206,20 +223,24 @@ def create_default_users():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username, password=password).first()
-
-        if user:
+        
+        # 1. Look up the user by username ONLY
+        user = User.query.filter_by(username=username).first()
+        
+        # 2. Use check_password_hash to verify the password
+        from werkzeug.security import check_password_hash
+        if user and check_password_hash(user.password, password):
             login_user(user)
             flash(f"Welcome back, {user.username}!", "success")
-            
+
             next_page = request.args.get('next')
-            if not next_page or next_page == '/logout':
+            if not next_page or not next_page.startswith('/'):
                 next_page = url_for('dashboard')
-                
+            
             return redirect(next_page)
         else:
             flash("Invalid login credentials", "danger")
@@ -269,8 +290,10 @@ def inventory():
 
 @app.route('/books')
 def books():
-    return redirect(url_for('inventory'))
-
+    # Fetch all books from the database
+    all_books = Book.query.all()
+    # Render the public storefront template
+    return render_template('books.html', books=all_books)
 
 @app.route('/add_book', methods=['GET', 'POST'])
 def add_book():
@@ -416,9 +439,8 @@ def api_check_book(isbn):
 # Checkout
 # --------------------------
 @app.route('/checkout', methods=['GET', 'POST'])
-@login_required
+# --- REMOVED @login_required ---
 def checkout():
-    # Fetch books for the dropdown menu
     books = Book.query.all()
     
     if request.method == 'POST':
@@ -428,35 +450,39 @@ def checkout():
             
             book = Book.query.get_or_404(selected_book_id)
             
-            # Logic Guard: Prevent selling more than you have
             if book.quantity < quantity:
                 flash(f"Not enough stock! Only {book.quantity} copies left.", "danger")
                 return redirect(url_for('checkout'))
             
-            # Financials (Using Maryland's 6% sales tax)
             subtotal = book.price * quantity
             tax = subtotal * 0.06
             total = subtotal + tax
             
-            # Create the Sale record (The Audit Trail)
             new_sale = Sale(
                 book_id=book.id,
+                book_title=book.title,  
+                book_isbn=book.isbn,    
                 quantity=quantity,
                 subtotal=round(subtotal, 2),
                 tax=round(tax, 2),
                 total=round(total, 2),
+                # If your Sale model has a user_id, we use current_user.id if they are logged in, 
+                # otherwise we leave it None or use a default 'Guest' ID.
+                user_id=current_user.id if current_user.is_authenticated else None,
                 date=datetime.now()
             )
-            
-            # Update inventory count
+
             book.quantity -= quantity
-            
-            # Save both the new sale and the inventory change
             db.session.add(new_sale)
             db.session.commit()
             
-            flash(f"Successfully sold {quantity}x {book.title}!", "success")
-            return redirect(url_for('sales_history'))
+            flash(f"Successfully purchased {quantity}x {book.title}!", "success")
+
+            # --- LOGIC CHANGE FOR REDIRECT ---
+            # If the user is an admin, take them to history. If guest, take them to the storefront.
+            if current_user.is_authenticated and current_user.role == 'admin':
+                return redirect(url_for('sales_history'))
+            return redirect(url_for('books')) # Redirects guests back to your new storefront
             
         except Exception as e:
             db.session.rollback()
@@ -593,7 +619,6 @@ def suppliers():
         suppliers=all_suppliers
     )
 
-
 @app.route('/add_supplier', methods=['POST'])
 def add_supplier():
     try:
@@ -614,6 +639,22 @@ def add_supplier():
     except Exception as e:
         flash(f"Error adding supplier: {e}", "danger")
 
+    return redirect(url_for('suppliers'))
+
+# --- SUPPLIER MANAGEMENT ---
+
+@app.route('/delete_supplier/<int:id>', methods=['POST'])
+@login_required
+def delete_supplier(id):
+    supplier = Supplier.query.get_or_404(id)
+    try:
+        db.session.delete(supplier)
+        db.session.commit()
+        flash('Supplier removed successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: Could not remove supplier. {str(e)}', 'danger')
+    
     return redirect(url_for('suppliers'))
 # --------------------------
 # Main
