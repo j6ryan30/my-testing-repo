@@ -4,7 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from datetime import datetime
 import barcode
 from barcode.writer import ImageWriter
-
+import os
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -14,6 +14,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Create the barcodes directory if it doesn't exist
+os.makedirs(os.path.join('static', 'barcodes'), exist_ok=True)
+
 login_manager = LoginManager()
 login_manager.login_view = 'login' # Tells Flask where the login page is
 login_manager.init_app(app)
@@ -22,9 +25,7 @@ login_manager.init_app(app)
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-# --------------------------
 # Database Models
-# --------------------------
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, IntegerField, TextAreaField, SubmitField
@@ -417,9 +418,8 @@ def generate_barcode(book_id):
         "success"
     )
 
-    return redirect(
-        url_for('books')
-    )
+    return render_template('barcode.html', book=book, barcode_url=f"barcodes/{isbn}")    
+
 
 # TASK: Barcode Lookup Logic
 @app.route('/api/check_book/<isbn>')
