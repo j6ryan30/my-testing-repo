@@ -286,7 +286,7 @@ def dashboard():
 @login_required 
 def inventory():
     books = Book.query.all()
-    return render_template('books.html', books=books, os=os)
+    return render_template('inventory.html', books=books, os=os)
 
 @app.route('/books')
 def books():
