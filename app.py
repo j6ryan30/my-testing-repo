@@ -38,6 +38,7 @@ class AddBookForm(FlaskForm):
     isbn = StringField('ISBN', validators=[DataRequired()])
     price = FloatField('Price', validators=[DataRequired()])
     quantity = IntegerField('Quantity', validators=[DataRequired()])
+    description = TextAreaField('Description')
     submit = SubmitField('Add Book')
 
 class Book(db.Model):
