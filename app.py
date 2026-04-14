@@ -30,13 +30,13 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, IntegerField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired
 
+# --- FORM DEFINITION ---
 class AddBookForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     author = StringField('Author', validators=[DataRequired()])
     isbn = StringField('ISBN', validators=[DataRequired()])
     price = FloatField('Price', validators=[DataRequired()])
     quantity = IntegerField('Quantity', validators=[DataRequired()])
-    description = TextAreaField('Description')
     submit = SubmitField('Add Book')
 
 class Book(db.Model):
