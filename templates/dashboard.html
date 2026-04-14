@@ -3,12 +3,12 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="mb-4">📊 Dashboard</h1>
-   <p>
-Welcome,
-<strong>{{ session.username }}</strong>
-({{ session.role }})
-</p>
-
+<div class="welcome-section mb-4">
+    <h3 class="fw-bold">Welcome, {{ current_user.username }}!</h3>
+    {% if current_user.role %}
+        <span class="badge bg-secondary">{{ current_user.role|capitalize }}</span>
+    {% endif %}
+</div>
     <div class="row g-4">
         <!-- Checkout Card -->
         <div class="col-md-4">
@@ -27,7 +27,7 @@ Welcome,
                 <div class="card-body">
                     <h5 class="card-title">📚 Books</h5>
                     <p class="card-text">View and manage book inventory.</p>
-                    <a href="{{ url_for('books') }}" class="btn btn-light">Go</a>
+                    <a href="{{ url_for('inventory') }}" class="btn btn-light">Go</a>
                 </div>
             </div>
         </div>
