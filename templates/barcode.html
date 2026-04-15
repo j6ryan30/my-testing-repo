@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+<<<<<<< HEAD
 
 {% block title %}Barcode - {{ book.title }}{% endblock %}
 
@@ -15,5 +16,13 @@
         <a href="{{ url_for('inventory') }}" class="btn btn-secondary">Back to Inventory</a>
         <button onclick="window.print()" class="btn btn-outline-primary">Print Barcode</button>
     </div>
+=======
+{% block content %}
+<div class="container mt-4">
+    <h2>Barcode for {{ book.title }}</h2>
+    <p>ISBN: {{ book.isbn }}</p>
+    <p>Barcode Data: {{ barcode_data }}</p>
+    <!-- In production, you would render an actual barcode image here -->
+>>>>>>> 2235a09 (Save current bookstore changes before pull)
 </div>
 {% endblock %}
