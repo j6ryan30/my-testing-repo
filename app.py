@@ -88,20 +88,6 @@ class Sale(db.Model):
     total = db.Column(db.Float, nullable=False)
 
 # ==================== DATABASE MODELS ====================
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='user')
-
-    def set_password(self, password):
-        self.password = hashlib.sha256(password.encode()).hexdigest()
-
-    def check_password(self, password):
-        return self.password == hashlib.sha256(password.encode()).hexdigest()
-
-
-
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -118,25 +104,6 @@ class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
-
-class AddBookForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    author = StringField('Author', validators=[DataRequired()])
-    isbn = StringField('ISBN', validators=[DataRequired()])
-    quantity = IntegerField('Quantity', validators=[DataRequired()])
-    price = FloatField('Price', validators=[DataRequired()])
-    description = TextAreaField('Description')
-    submit = SubmitField('Add Book')
-
-# ==================== AUTH WRAPPER ====================
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Login required to access this page.', 'warning')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 # ==================== CORE ROUTES ====================
 @app.route('/')
@@ -186,7 +153,6 @@ def about():
 def contact():
     return render_template('contact.html')
 
-
 # --------------------------
 # Dashboard
 # --------------------------
@@ -199,8 +165,6 @@ def dashboard():
         username=current_user.username,
         role=current_user.role
     )
-
-
 # --------------------------
 # Book Management
 # --------------------------
@@ -211,12 +175,10 @@ def inventory():
     books = Book.query.all()
     return render_template('inventory.html', books=books, os=os)
 
-
 @app.route('/books')
 def books():
     all_books = Book.query.all()
     return render_template('books.html', books=all_books)
-
 
 # ==================== BOOK ACTIONS ====================
 
@@ -320,7 +282,6 @@ def api_check_book(isbn):
         })
     return jsonify({'success': False, 'message': 'Book not found'})
 
-
 # --------------------------
 # Checkout
 # --------------------------
@@ -372,12 +333,10 @@ def checkout():
 
     return render_template('checkout.html', books=books)
 
-
 @app.route("/receipt/<int:sale_id>")
 def receipt(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     return render_template("receipt.html", sale=sale)
-
 
 # --------------------------
 # Sales History
@@ -389,13 +348,12 @@ def sales_history():
     sales = Sale.query.order_by(Sale.date.desc()).all()
     return render_template('sales_history.html', sales=sales)
 
-
 @app.route('/low_stock')
 @login_required
 def low_stock():
-    books = Book.query.filter(Book.quantity <= 5).all()
-    return render_template('low_stock.html', books=books)
-
+    threshold = 5
+    books = Book.query.filter(Book.quantity <= threshold).all()
+    return render_template('low_stock.html', books=books, threshold=threshold)
 
 @app.route('/seed_suppliers')
 @login_required
@@ -415,7 +373,6 @@ def seed_suppliers():
     flash("Demo suppliers generated!", "info")
     return redirect(url_for('suppliers'))
 
-
 @app.route('/suppliers')
 @login_required
 def suppliers():
@@ -429,7 +386,26 @@ def purchase_orders():
     books = Book.query.all()
     return render_template('purchase_orders.html', orders=orders, books=books)
 
+@app.route('/add_purchase_order', methods=['POST'])
+@login_required
+def add_purchase_order():
+    try:
+        book_id = int(request.form['book_id'])
+        quantity = int(request.form['quantity'])
+
+        order = PurchaseOrder(book_id=book_id, quantity=quantity)
+        db.session.add(order)
+        db.session.commit()
+
+        flash('Purchase order created successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating purchase order: {e}', 'danger')
+
+    return redirect(url_for('purchase_orders'))
+
 @app.route('/add_supplier', methods=['POST'])
+@login_required
 def add_supplier():
     try:
         name = request.form['name']
@@ -451,7 +427,6 @@ def add_supplier():
 
     return redirect(url_for('suppliers'))
 
-
 # --- SUPPLIER MANAGEMENT ---
 
 @app.route('/delete_supplier/<int:id>', methods=['POST'])
@@ -467,7 +442,6 @@ def delete_supplier(id):
         flash(f'Error: Could not remove supplier. {str(e)}', 'danger')
 
     return redirect(url_for('suppliers'))
-
 
 # ==================== INITIALIZATION ====================
 def init_db():
