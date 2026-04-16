@@ -1,28 +1,31 @@
 {% extends "base.html" %}
-<<<<<<< HEAD
 
 {% block title %}Barcode - {{ book.title }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5 text-center">
-    <h2>Barcode for: {{ book.title }}</h2>
-    <hr>
-    
-    <div class="my-4">
-        <img src="{{ url_for('static', filename=barcode_url) }}" alt="Barcode" class="img-fluid border p-4 bg-white">
+<div class="container mt-5">
+    <div class="card shadow-lg mx-auto" style="max-width: 500px; border: 2px solid #333;">
+        <div class="card-header bg-dark text-white text-center">
+            <h4>Barcode Identity</h4>
+        </div>
+
+        <div class="card-body text-center p-5">
+            <h5 class="text-muted mb-4">{{ book.title }}</h5>
+
+            <div class="barcode-container mb-4">
+                <img src="{{ url_for('static', filename=barcode_url) }}"
+                     alt="Barcode for {{ book.isbn }}"
+                     class="img-fluid border p-3 bg-white">
+            </div>
+
+            <p class="fw-bold">ISBN: {{ book.isbn }}</p>
+            <hr>
+
+            <div class="d-grid gap-2">
+                <button onclick="window.print()" class="btn btn-outline-dark">Print Label</button>
+                <a href="{{ url_for('inventory') }}" class="btn btn-danger">Return to Inventory</a>
+            </div>
+        </div>
     </div>
-    
-    <div class="mt-4">
-        <a href="{{ url_for('inventory') }}" class="btn btn-secondary">Back to Inventory</a>
-        <button onclick="window.print()" class="btn btn-outline-primary">Print Barcode</button>
-    </div>
-=======
-{% block content %}
-<div class="container mt-4">
-    <h2>Barcode for {{ book.title }}</h2>
-    <p>ISBN: {{ book.isbn }}</p>
-    <p>Barcode Data: {{ barcode_data }}</p>
-    <!-- In production, you would render an actual barcode image here -->
->>>>>>> 2235a09 (Save current bookstore changes before pull)
 </div>
 {% endblock %}

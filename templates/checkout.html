@@ -1,62 +1,77 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="container mt-4">
-
-    <h2>Checkout</h2>
-
-    <form method="POST">
-
-        <div class="mb-3">
-
-            <label>Select Book</label>
-
-            <select
-                name="book_id"
-                class="form-control"
-                required
-            >
-
-                {% for book in books %}
-
-                <option value="{{ book.id }}">
-
-                    {{ book.title }} - ${{ "%.2f"|format(book.price) }}
-
-                </option>
-
-                {% endfor %}
-
-            </select>
-
+    <h2 class="mb-4">Smart Checkout</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body bg-light">
+                    <h5>Scan Barcode or Select Book</h5>
+                    <input type="text" id="barcode_scanner" class="form-control mb-3 border-danger shadow-sm" placeholder="[CLICK HERE TO SCAN]" autofocus>
+                    
+                    <form method="POST">
+                        <select name="book_id" id="book_select" class="form-select mb-3" required>
+                            <option value="">-- Manual Selection --</option>
+                            {% for book in books %}
+                            <option value="{{ book.id }}" data-price="{{ book.price }}" data-title="{{ book.title }}">{{ book.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="quantity" id="qty_input" class="form-control mb-3" value="1" min="1">
+                        <button type="submit" class="btn btn-danger w-100 rounded-pill shadow">Complete Sale</button>
+                    </form>
+                </div>
+            </div>
         </div>
 
-        <div class="mb-3">
-
-            <label>Quantity</label>
-
-            <input
-                type="number"
-                name="quantity"
-                min="1"
-                value="1"
-                class="form-control"
-                required
-            >
-
+        <div class="col-md-6">
+            <div class="card shadow border-dark">
+                <div class="card-header bg-dark text-white text-center"><h5>Transaction Summary</h5></div>
+                <div class="card-body text-center">
+                    <h1 id="live_total" class="display-1 text-danger fw-bold">$0.00</h1>
+                    <p class="text-muted small">Includes 7% MD Sales Tax</p>
+                    <hr>
+                    <div class="text-start px-3">
+                        <p><strong>Item:</strong> <span id="disp_title" class="text-muted">---</span></p>
+                        <p><strong>Unit Price:</strong> <span id="disp_price" class="text-muted">$0.00</span></p>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <button
-            type="submit"
-            class="btn btn-primary"
-        >
-
-            Complete Sale
-
-        </button>
-
-    </form>
-
+    </div>
 </div>
 
+<script>
+    const scanner = document.getElementById('barcode_scanner');
+    const select = document.getElementById('book_select');
+    const qty = document.getElementById('qty_input');
+    const totalDisp = document.getElementById('live_total');
+
+    function updateTotals() {
+        const option = select.options[select.selectedIndex];
+        const price = option && option.value ? parseFloat(option.dataset.price) : 0;
+        // Calculation matching your app.py 0.07 tax logic
+        const total = (price * qty.value) * 1.07;
+        
+        totalDisp.innerText = `$${total.toFixed(2)}`;
+        document.getElementById('disp_title').innerText = option && option.value ? option.dataset.title : "---";
+        document.getElementById('disp_price').innerText = `$${price.toFixed(2)}`;
+    }
+
+    // TASK: Barcode Lookup Logic (Frontend)
+    scanner.addEventListener('change', async () => {
+        const res = await fetch(`/api/check_book/${scanner.value}`);
+        const data = await res.json();
+        if(data.success) {
+            select.value = data.id;
+            updateTotals();
+            scanner.value = ''; // Reset for next scan
+        } else {
+            alert("Book not found in system.");
+            scanner.value = '';
+        }
+    });
+
+    select.addEventListener('change', updateTotals);
+    qty.addEventListener('input', updateTotals);
+</script>
 {% endblock %}

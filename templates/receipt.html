@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card mx-auto shadow-lg receipt-card" style="max-width: 450px; border: 2px dashed #333;">
+        <div class="card-body text-center">
+            <h3 class="fw-bold">Noble Bookstore</h3>
+            <p class="text-muted small">Maryland Station | Transaction Receipt</p>
+            <hr>
+            <div class="text-start mb-3">
+                <p><strong>Order ID:</strong> #{{ sale.id }}</p>
+                <p><strong>Date:</strong> {{ sale.date.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <table class="table table-sm text-start">
+                <tr>
+                    <td>Items Sold:</td>
+                    <td class="text-end">{{ sale.quantity }}</td>
+                </tr>
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-end">${{ "%.2f"|format(sale.subtotal) }}</td>
+                </tr>
+                <tr class="text-muted">
+                    <td>Sales Tax (7%):</td>
+                    <td class="text-end">${{ "%.2f"|format(sale.tax) }}</td>
+                </tr>
+                <tr class="fw-bold h5">
+                    <td>TOTAL:</td>
+                    <td class="text-end text-danger">${{ "%.2f"|format(sale.total) }}</td>
+                </tr>
+            </table>
+            <hr>
+            <div class="no-print">
+                <button onclick="window.print()" class="btn btn-dark w-100 rounded-pill mb-2">Print Receipt</button>
+                <a href="{{ url_for('sales_history') }}" class="btn btn-link">Return to Sales History</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .no-print, nav, .navbar { display: none !important; }
+        .container { margin-top: 0 !important; }
+        .receipt-card { border: none !important; box-shadow: none !important; width: 100% !important; }
+    }
+</style>
+{% endblock %}

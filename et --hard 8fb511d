@@ -1,0 +1,56 @@
+[33mb851bcc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mconflict-test[m[33m)[m Resolved all Sprint 2 merge conflicts for bookstore logic
+[33m8fb511d[m[33m ([m[1;32mstaging-area[m[33m, [m[1;32mmain[m[33m)[m Sprint 2 Final: Fixed Suppliers 500, Barcode display, and login hardening
+[33m067f8b4[m[33m ([m[1;31mupstream/main[m[33m, [m[1;31mupstream/HEAD[m[33m)[m Merge pull request #2 from j6ryan30/feature/books-table
+[33ma5038ce[m[33m ([m[1;31morigin/feature/books-table[m[33m, [m[1;32mfeature/books-table[m[33m)[m Final Sprint 1: Verified all routes, fixed BuildErrors, and synchronized UI
+[33m1e0a652[m Matched Hero section background to book card gradient
+[33ma3caa37[m UI Overhaul: Matching original project card design and gradients
+[33m944b88c[m Add barcode template and finalize app.py routing
+[33m6fb3127[m Final fix: Added return statement and robust pathing for barcodes
+[33m3cc6b9e[m Switch to code128 barcodes to prevent ISBN validation crashes
+[33m89bce31[m Fix missing database URI and save file
+[33m8501358[m Final wiring for barcode generation and secret key
+[33m5b4498f[m Nuke database and update all templates for Render
+[33m70fca44[m Force database reset to fix missing role column
+[33m429b812[m Add initialization logs for database and admin user
+[33me0c4c3a[m Fix navbar link to use home instead of dashboard
+[33m53830e4[m Add gunicorn and barcode dependencies to requirements
+[33m4724902[m Fix base.html navigation and missing routes
+[33md751802[m Fix navbar routes to match Flask app
+[33mddbb02b[m Refactor navbar links and alert messages
+[33m471ed7d[m Implement logout functionality
+[33m443b0b7[m Update app.py
+[33mf1197bd[m Change Home link to point to Login page
+[33m03d4814[m Change navbar brand link from home to login
+[33mc9a0f76[m Update app.py
+[33m81137cf[m Add python-barcode and Pillow to requirements
+[33m89da707[m Update app context usage for database creation
+[33m3732db2[m Fix indentation for Sale model id column
+[33mf83f226[m Add imports for SQLAlchemy, datetime, and barcode
+[33m73afeb3[m Fixed merge conflict markers
+[33m1a91c9b[m Added price field to edit book form
+[33m52399f4[m Updated database models and barcode features
+[33mb6c8633[m Fix base template to match app routes
+[33m823bcab[m Fixed navbar route endpoints in base template
+[33mc02d7be[m Reapply "Add gunicorn to requirements"
+[33m079598d[m Revert "Add gunicorn to requirements"
+[33m25d7fb6[m Add gunicorn to requirements
+[33mcc286f8[m Merge pull request #1 from jospina07/feature/books-table
+[33m2abf21c[m[33m ([m[1;31mupstream/feature/books-table[m[33m)[m Resolved all merge conflicts with main.
+[33mfe7a7de[m[33m ([m[1;31mupstream/rollback-to-slugbug[m[33m)[m Fix Render deployment
+[33mebd2c6c[m Fixed indentation and port configuration
+[33m049f9a0[m Added requirements.txt for deployment
+[33m9a6a8d7[m Fixed routes, login system, and dashboard navigation
+[33m9e14813[m Added gitignore
+[33m530345f[m Fixed duplicate routes and updated dashboard navigation
+[33mbc2d61b[m Fix Pillow version
+[33m35c7b46[m Force Python 3.11
+[33m09236a6[m Add runtime
+[33m5bdeb0a[m Add static folder for barcodes
+[33m428f7da[m Fix broken requirements and add gunicorn
+[33m35012c3[m Added README file
+[33m4b78a77[m Updated gitignore
+[33m08c389a[m Updated requirements
+[33mf6926c4[m Add books table feature
+[33m6ffd707[m Update database with test data
+[33m78f93bc[m Add book management, login, and inventory features
+[33m6362f25[m Initial commit - bookstore Flask app
