@@ -21,8 +21,13 @@
                 <div class="card-body">
                     <h5 class="card-title fw-bold">{{ book.title }}</h5>
                     <p class="text-muted small mb-1">by {{ book.author }}</p>
-                    <p class="card-text small text-secondary">{{ book.description[:75] }}...</p>
-                    
+{% if book.description %}
+    <p class="card-text small text-secondary">
+        {{ book.description[:75] }}{% if book.description|length > 75 %}...{% endif %}
+    </p>
+{% else %}
+    <p class="card-text small text-secondary">No description available.</p>
+{% endif %}                    
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <span class="fs-5 fw-bold text-danger">${{ "%.2f"|format(book.price) }}</span>
                         <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn btn-outline-danger btn-sm rounded-pill">View Details</a>
