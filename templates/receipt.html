@@ -1,35 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-5">
-    <div class="card mx-auto shadow-lg receipt-card" style="max-width: 450px; border: 2px dashed #333;">
-        <div class="card-body text-center">
-            <h3 class="fw-bold">Noble Bookstore</h3>
-            <p class="text-muted small">Maryland Station | Transaction Receipt</p>
-            <hr>
-            <div class="text-start mb-3">
-                <p><strong>Order ID:</strong> #{{ sale.id }}</p>
-                <p><strong>Date:</strong> {{ sale.date.strftime('%Y-%m-%d %H:%M') }}</p>
+    <div class="card mx-auto shadow-lg receipt-card" style="max-width: 650px; border: 2px dashed #333;">
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <h3 class="fw-bold">Noble Bookstore</h3>
+                <p class="text-muted small mb-0">Transaction Receipt</p>
             </div>
-            <table class="table table-sm text-start">
-                <tr>
-                    <td>Items Sold:</td>
-                    <td class="text-end">{{ sale.quantity }}</td>
-                </tr>
-                <tr>
-                    <td>Subtotal:</td>
-                    <td class="text-end">${{ "%.2f"|format(sale.subtotal) }}</td>
-                </tr>
-                <tr class="text-muted">
-                    <td>Sales Tax (7%):</td>
-                    <td class="text-end">${{ "%.2f"|format(sale.tax) }}</td>
-                </tr>
-                <tr class="fw-bold h5">
-                    <td>TOTAL:</td>
-                    <td class="text-end text-danger">${{ "%.2f"|format(sale.total) }}</td>
-                </tr>
-            </table>
+
             <hr>
-            <div class="no-print">
+
+            <div class="mb-3">
+                <p class="mb-1"><strong>Order ID:</strong> #{{ sale.id }}</p>
+                <p class="mb-1"><strong>Date:</strong> {{ sale.date.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p class="mb-1"><strong>State:</strong> {{ sale.tax_state or 'N/A' }}</p>
+                <p class="mb-0"><strong>Tax Rate:</strong> {{ "%.2f"|format(sale.tax_rate * 100) }}%</p>
+            </div>
+
+            <table class="table table-sm text-start align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Book</th>
+                        <th>ISBN</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Unit Price</th>
+                        <th class="text-end">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sale.items %}
+                    <tr>
+                        <td>{{ item.book_title }}</td>
+                        <td><small class="text-muted">{{ item.book_isbn }}</small></td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">${{ "%.2f"|format(item.unit_price) }}</td>
+                        <td class="text-end">${{ "%.2f"|format(item.line_subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <hr>
+
+            <div class="ms-auto" style="max-width: 280px;">
+                <div class="d-flex justify-content-between">
+                    <span><strong>Subtotal:</strong></span>
+                    <span>${{ "%.2f"|format(sale.subtotal) }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span><strong>Tax:</strong></span>
+                    <span>${{ "%.2f"|format(sale.tax) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mt-2 fs-5 fw-bold">
+                    <span>TOTAL:</span>
+                    <span class="text-danger">${{ "%.2f"|format(sale.total) }}</span>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="text-center no-print">
                 <button onclick="window.print()" class="btn btn-dark w-100 rounded-pill mb-2">Print Receipt</button>
                 <a href="{{ url_for('sales_history') }}" class="btn btn-link">Return to Sales History</a>
             </div>
@@ -39,9 +69,20 @@
 
 <style>
     @media print {
-        .no-print, nav, .navbar { display: none !important; }
-        .container { margin-top: 0 !important; }
-        .receipt-card { border: none !important; box-shadow: none !important; width: 100% !important; }
+        .no-print, nav, .navbar {
+            display: none !important;
+        }
+
+        .container {
+            margin-top: 0 !important;
+        }
+
+        .receipt-card {
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
     }
 </style>
 {% endblock %}

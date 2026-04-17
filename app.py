@@ -1,4 +1,5 @@
 import os
+import json
 import hashlib
 from datetime import datetime
 from functools import wraps
@@ -41,7 +42,6 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return self.password == hashlib.sha256(password.encode()).hexdigest()
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -67,25 +67,40 @@ class Book(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     description = db.Column(db.Text, nullable=True)
 
-
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    # Link to book
+    # Allow guests if needed
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Transaction-level totals
+    subtotal = db.Column(db.Float, nullable=False, default=0.0)
+    tax = db.Column(db.Float, nullable=False, default=0.0)
+    total = db.Column(db.Float, nullable=False, default=0.0)
+
+    # Optional tax info for clearer receipts/history
+    tax_state = db.Column(db.String(50), nullable=True)
+    tax_rate = db.Column(db.Float, nullable=False, default=0.0)
+
+    # One sale has many items
+    items = db.relationship('SaleItem', backref='sale', lazy=True, cascade='all, delete-orphan')
+
+class SaleItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
+
+    # Link to original book
     book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
 
-    # Snapshot data for history
+    # Snapshot data for history/receipt
     book_title = db.Column(db.String(200), nullable=False)
     book_isbn = db.Column(db.String(20), nullable=False)
 
-    # Allow guests
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-
     quantity = db.Column(db.Integer, nullable=False)
-    subtotal = db.Column(db.Float, nullable=False)
-    tax = db.Column(db.Float, nullable=False)
-    total = db.Column(db.Float, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    line_subtotal = db.Column(db.Float, nullable=False)   
 
 # ==================== DATABASE MODELS ====================
 class Supplier(db.Model):
@@ -136,13 +151,12 @@ def login():
 
     return render_template('login.html')
 
-
 @app.route('/logout')
 def logout():
     logout_user()
+    session.clear()
     flash("Logged out successfully.", "success")
     return redirect(url_for('login'))
-
 
 @app.route('/about')
 def about():
@@ -156,24 +170,45 @@ def contact():
 # --------------------------
 # Dashboard
 # --------------------------
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    sales = Sale.query.all()
+    total_revenue = sum(sale.total for sale in sales)
+    total_transactions = len(sales)
+    low_stock_count = Book.query.filter(Book.quantity <= 5).count()
+    total_books = Book.query.count()
+    total_purchase_orders = PurchaseOrder.query.count()
+
     return render_template(
         'dashboard.html',
         username=current_user.username,
-        role=current_user.role
+        role=current_user.role,
+        total_revenue=total_revenue,
+        total_transactions=total_transactions,
+        low_stock_count=low_stock_count,
+        total_books=total_books,
+        total_purchase_orders=total_purchase_orders
     )
 # --------------------------
 # Book Management
 # --------------------------
-
 @app.route('/inventory')
 @login_required
 def inventory():
-    books = Book.query.all()
-    return render_template('inventory.html', books=books, os=os)
+    search = request.args.get('search', '').strip()
+
+    if search:
+        books = Book.query.filter(
+            (Book.title.ilike(f'%{search}%')) |
+            (Book.author.ilike(f'%{search}%')) |
+            (Book.isbn.ilike(f'%{search}%'))
+        ).all()
+    else:
+        books = Book.query.all()
+
+    return render_template('inventory.html', books=books, os=os, search=search)
+
 
 @app.route('/books')
 def books():
@@ -189,6 +224,17 @@ def add_book():
 
     if form.validate_on_submit():
         try:
+            # 🔍 Check for duplicate ISBN
+            existing_book = Book.query.filter_by(isbn=form.isbn.data).first()
+
+            if existing_book:
+                flash(
+                    f'A book with ISBN {form.isbn.data} already exists: "{existing_book.title}".',
+                    'warning'
+                )
+                return render_template('add_book.html', form=form)
+
+            # ✅ Create new book
             new_book = Book(
                 title=form.title.data,
                 author=form.author.data,
@@ -284,54 +330,114 @@ def api_check_book(isbn):
 
 # --------------------------
 # Checkout
-# --------------------------
+# -------------------------
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    books = Book.query.all()
 
     if request.method == 'POST':
+        cart_data = request.form.get('cart_data', '[]')
+
         try:
-            selected_book_id = int(request.form['book_id'])
-            quantity = int(request.form['quantity'])
+            cart = json.loads(cart_data)
+        except:
+            cart = []
 
-            book = Book.query.get_or_404(selected_book_id)
+        if not cart:
+            flash('Cart is empty.', 'warning')
+            return redirect(url_for('checkout'))
 
-            if book.quantity < quantity:
-                flash(f"Not enough stock! Only {book.quantity} copies left.", "danger")
-                return redirect(url_for('checkout'))
+        tax_rate = float(request.form.get('tax_rate', 0.06))
+        tax_state = request.form.get('tax_state', 'Unknown')
+        cart_subtotal = 0.0
+        sale_items_data = []
 
-            subtotal = book.price * quantity
-            tax = subtotal * 0.06
-            total = subtotal + tax
+        for item in cart:
+            book_id = int(item['id'])
+            quantity = int(item['quantity'])
 
-            new_sale = Sale(
-                book_id=book.id,
-                book_title=book.title,
-                book_isbn=book.isbn,
-                quantity=quantity,
-                subtotal=round(subtotal, 2),
-                tax=round(tax, 2),
-                total=round(total, 2),
+            book = Book.query.get(book_id)
+            if not book:
+                continue
+
+            unit_price = float(book.price)
+            line_subtotal = round(unit_price * quantity, 2)
+            cart_subtotal += line_subtotal
+
+            sale_items_data.append({
+                'book_id': book.id,
+                'book_title': book.title,
+                'book_isbn': book.isbn,
+                'quantity': quantity,
+                'unit_price': unit_price,
+                'line_subtotal': line_subtotal
+            })
+
+
+        cart_subtotal = round(cart_subtotal, 2)
+        cart_tax = round(cart_subtotal * tax_rate, 2)
+        cart_total = round(cart_subtotal + cart_tax, 2)
+
+        try:
+            # Create ONE sale for the whole checkout
+            sale = Sale(
+                date=datetime.utcnow(),
                 user_id=current_user.id if current_user.is_authenticated else None,
-                date=datetime.now()
+                subtotal=cart_subtotal,
+                tax=cart_tax,
+                total=cart_total,
+                tax_state=tax_state,
+                tax_rate=tax_rate
             )
+            db.session.add(sale)
+            db.session.flush()  # gets sale.id before commit
 
-            book.quantity -= quantity
-            db.session.add(new_sale)
-            db.session.commit()
+            # Create ONE SaleItem per cart item
+            for item in sale_items_data:
+                sale_item = SaleItem(
+                    sale_id=sale.id,
+                    book_id=item['book_id'],
+                    book_title=item['book_title'],
+                    book_isbn=item['book_isbn'],
+                    quantity=item['quantity'],
+                    unit_price=item['unit_price'],
+                    line_subtotal=item['line_subtotal']
+                )
+                db.session.add(sale_item)
 
-            flash(f"Successfully purchased {quantity}x {book.title}!", "success")
+                # 🔽 Reduce inventory
+                book = Book.query.get(item['book_id'])
+                if book:
+                    if book.quantity < item['quantity']:
+                        raise ValueError(f"Not enough stock for {book.title}")
+                    book.quantity -= item['quantity']
 
-            if current_user.is_authenticated and current_user.role == 'admin':
-                return redirect(url_for('sales_history'))
-            return redirect(url_for('books'))
+                    if book.quantity <= 5:
+                        existing_po = PurchaseOrder.query.filter_by(book_id=book.id, quantity=10).first()
+                        if not existing_po:
+                            auto_po = PurchaseOrder(
+                                book_id=book.id,
+                                quantity=10
+                            )
+                            db.session.add(auto_po)   
+                        
+            db.session.commit()             
+
+            flash(
+                f'Sale completed successfully! '
+                f'Cart subtotal: ${cart_subtotal:.2f}, '
+                f'tax: ${cart_tax:.2f}, '
+                f'total after tax: ${cart_total:.2f}',
+                'success'
+            )
+            return redirect(url_for('sales_history'))
 
         except Exception as e:
             db.session.rollback()
-            flash(f"Transaction Error: {str(e)}", "danger")
+            flash(f'Transaction Error: {str(e)}', 'danger')
             return redirect(url_for('checkout'))
 
-    return render_template('checkout.html', books=books)
+    return render_template('checkout.html', books=Book.query.all())
 
 @app.route("/receipt/<int:sale_id>")
 def receipt(sale_id):
@@ -446,29 +552,117 @@ def delete_supplier(id):
 # ==================== INITIALIZATION ====================
 def init_db():
     with app.app_context():
-        os.makedirs(os.path.join(app.root_path, 'static', 'barcodes'), exist_ok=True)
+
         db.create_all()
 
-        users_to_create = [
-            ('admin', 'admin123', 'admin'),
-            ('ROwens03', 'ROwens03', 'admin'),
-            ('J0spina02', 'J0spina02', 'admin'),
-            ('EBarreno01', 'EBarreno01', 'admin'),
-            ('KPeekSM', 'KPeekSM', 'admin'),
-            ('CPowersQA', 'CPowersQA', 'admin'),
-            ('FAlmasri01', 'FAlmasri01', 'user')
+        # =========================
+        # 1. Create Admin Users
+        # =========================
+        admin_usernames = [
+            'EBarreno01', 'JOspina02', 'ROwens03',
+            'KPeekSM', 'CPowers04', 'FAlmarasiFadi01', 'SShad02'
         ]
 
-        for u, p, r in users_to_create:
-            if not User.query.filter_by(username=u).first():
-                new_user = User(username=u, role=r)
-                new_user.set_password(p)
+        for username in admin_usernames:
+            existing_user = User.query.filter_by(username=username).first()
+            if not existing_user:
+                new_user = User(
+                    username=username,
+                    role='admin'
+                )
+                new_user.set_password(username)
                 db.session.add(new_user)
+                print(f"✅ ADMIN CREATED: {username}")
 
+        # =========================
+        # 2. Seed Books (SAFE)
+        # =========================
+        books_to_create = [
+            {
+                "title": "The Great Gatsby",
+                "author": "F. Scott Fitzgerald",
+                "isbn": "9780743273565",
+                "price": 15.00,
+                "quantity": 10,
+                "description": "Classic American novel set in the Jazz Age."
+            },
+            {
+                "title": "1984",
+                "author": "George Orwell",
+                "isbn": "9780451524935",
+                "price": 12.50,
+                "quantity": 15,
+                "description": "Dystopian novel about surveillance and totalitarianism."
+            },
+            {
+                "title": "The Hobbit",
+                "author": "J.R.R. Tolkien",
+                "isbn": "9780547928227",
+                "price": 20.00,
+                "quantity": 8,
+                "description": "Fantasy adventure featuring Bilbo Baggins."
+            },
+            {
+                "title": "Attack on Titan",
+                "author": "Hajime Isayama",
+                "isbn": "9780316201234",
+                "price": 15.99,
+                "quantity": 10,
+                "description": "Post-apocalyptic manga series."
+            },
+            {
+                "title": "Atomic Habits",
+                "author": "James Clear",
+                "isbn": "9780735211292",
+                "price": 18.00,
+                "quantity": 20,
+                "description": "Practical guide to building good habits."
+            },
+            {
+                "title": "Harry Potter",
+                "author": "J.K. Rowling",
+                "isbn": "123456789874",
+                "price": 20.99,
+                "quantity": 25,
+                "description": "Popular fantasy novel about a young wizard."
+            }
+        ]
+
+        for b in books_to_create:
+            existing_book = Book.query.filter_by(isbn=b["isbn"]).first()
+            if not existing_book:
+                db.session.add(Book(
+                    title=b["title"],
+                    author=b["author"],
+                    isbn=b["isbn"],
+                    price=b["price"],
+                    quantity=b["quantity"],
+                    description=b["description"]
+                ))
+                print(f"📖 Added Book: {b['title']}")
+
+        # =========================
+        # 3. Seed Suppliers
+        # =========================
+        suppliers = [
+            {'name': 'Baltimore Book Distrib.', 'contact': 'orders@bmorebooks.com'},
+            {'name': 'Annapolis Paper Co.', 'contact': '410-555-0199'},
+            {'name': 'DC Scholastic Hub', 'contact': 'dc-sales@scholastic.com'}
+        ]
+
+        for s in suppliers:
+            existing_supplier = Supplier.query.filter_by(name=s['name']).first()
+            if not existing_supplier:
+                db.session.add(Supplier(name=s['name'], contact=s['contact']))
+                print(f"🏢 Added Supplier: {s['name']}")
+
+        # =========================
+        # 4. Commit Everything
+        # =========================
         db.session.commit()
 
+        print("\n✅ DATABASE INITIALIZED SAFELY (no data wiped)\n")
 
 if __name__ == '__main__':
     init_db()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(debug=True)

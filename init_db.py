@@ -1,9 +1,8 @@
-from app import app, db, User, Book, Supplier  # Added Book and Supplier
+from app import app, db, User, Book, Supplier, init_db  # Added Book and Supplier
 import os
 
 with app.app_context():
 
-    db.drop_all()
     db.create_all()
 
     # 2. List of all Admin Accounts
@@ -66,3 +65,7 @@ with app.app_context():
     print("="*40 + "\n")
 
 print("Now, close this script and run: python app.py")
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True)
