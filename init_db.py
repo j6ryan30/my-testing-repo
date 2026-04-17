@@ -1,6 +1,7 @@
 from app import app, db, User, Book, Supplier
 
 with app.app_context():
+    db.drop_all()
     db.create_all()
 
     admin_usernames = [
