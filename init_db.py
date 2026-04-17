@@ -1,9 +1,8 @@
 from app import app, db, User, Book, Supplier  # Added Book and Supplier
-from werkzeug.security import generate_password_hash
 import os
 
 with app.app_context():
-    # 1. Clear everything and rebuild the tables
+
     db.drop_all()
     db.create_all()
 
@@ -15,14 +14,11 @@ with app.app_context():
 
     print("\n" + "="*40)
     for username in admin_usernames:
-        # We now hash the username ITSELF to use as the password
-        hashed_pw = generate_password_hash(username, method='pbkdf2:sha256')
-        
         new_user = User(
             username=username, 
-            password=hashed_pw,
-            role='admin'  # Keeps the previous NOT NULL error fixed
+            role='admin'  
         )
+        new_user.set_password(username)
         db.session.add(new_user)
         print(f"✅ ADMIN CREATED: {username} (Password: {username})")
 
