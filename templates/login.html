@@ -94,11 +94,13 @@ body {
     <p class="text-center">Team Login Portal</p>
 
     <!-- FLASH -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
+   {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
         {% for category, message in messages %}
             <div class="flash {{ category }}">{{ message }}</div>
         {% endfor %}
-    {% endwith %}
+    {% endif %}
+{% endwith %}
 
     <!-- 🔥 FIXED FORM -->
     <form method="POST" action="{{ url_for('login') }}">
