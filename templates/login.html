@@ -26,7 +26,6 @@ body {
     100% { background-position: 0% 50%; }
 }
 
-/* Glass Card */
 .login-card {
     width: 100%;
     max-width: 420px;
@@ -34,8 +33,6 @@ body {
 
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.3);
     color: white;
@@ -61,11 +58,6 @@ body {
     background: #ffffff;
     color: #2a5298;
     font-weight: bold;
-    border: none;
-}
-
-.btn-login:hover {
-    background: #eaeaea;
 }
 
 .flash {
@@ -75,8 +67,8 @@ body {
     text-align: center;
 }
 
-.flash.success { background: #28a745; color: white; }
-.flash.danger { background: #dc3545; color: white; }
+.flash.success { background: #28a745; }
+.flash.danger { background: #dc3545; }
 .flash.warning { background: #ffc107; color: black; }
 
 .password-wrapper {
@@ -90,7 +82,6 @@ body {
     transform: translateY(-50%);
     cursor: pointer;
     color: white;
-    font-size: 14px;
 }
 </style>
 </head>
@@ -102,14 +93,15 @@ body {
     <h3 class="title">📚 Noble Bookstore</h3>
     <p class="text-center">Team Login Portal</p>
 
-    <!-- Flash Messages -->
+    <!-- FLASH -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
             <div class="flash {{ category }}">{{ message }}</div>
         {% endfor %}
     {% endwith %}
 
-    <form method="POST">
+    <!-- 🔥 FIXED FORM -->
+    <form method="POST" action="{{ url_for('login') }}">
 
         <div class="mb-3">
             <label>Username</label>
@@ -124,9 +116,11 @@ body {
 
         <button type="submit" class="btn btn-login w-100">
             Login
+           
         </button>
 
     </form>
+
 </div>
 
 <script>
