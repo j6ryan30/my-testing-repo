@@ -252,7 +252,8 @@ def init_db():
                 ('EBarreno01', 'EBarreno01', 'admin'),
                 ('KPeekSM', 'KPeekSM', 'admin'),
                 ('CPowersQA', 'CPowersQA', 'admin'),
-                ('FAlmasri01', 'FAlmasri01', 'user')
+                ('FAlmasri01', 'FAlmasri01', 'user'),
+                ('SShad02' , 'SShad02', 'user')
             ]
             for u, p, r in users_to_create:
                 if not User.query.filter_by(username=u).first():

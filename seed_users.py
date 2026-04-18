@@ -8,7 +8,8 @@ def seed_users():
             ('EBarreno01', 'EBarreno01', 'admin'),
             ('KPeekSM', 'KPeekSM', 'admin'),
             ('CPowersQA', 'CPowersQA', 'admin'),
-            ('FAlmasri01', 'FAlmasri01', 'user')
+            ('FAlmasri01', 'FAlmasri01', 'user'),
+            ('SShad02' , 'SShad02', 'user')
         ]
 
         for u, p, r in users_to_create:
