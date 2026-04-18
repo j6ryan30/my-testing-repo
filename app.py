@@ -688,8 +688,9 @@ def init_db():
         print("\n✅ DATABASE INITIALIZED SAFELY (no data wiped)\n")
 
 with app.app_context():
+    db.create_all()
     init_db()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port)
