@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 # Security & Database Config
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bookstore.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/bookstore.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -356,7 +356,7 @@ def checkout():
             book_id = int(item['id'])
             quantity = int(item['quantity'])
 
-            book = Book.query.get(book_id)
+            book = db.session.get(Book, book_id)
             if not book:
                 continue
 
@@ -373,13 +373,15 @@ def checkout():
                 'line_subtotal': line_subtotal
             })
 
+        if not sale_items_data:
+            flash('No valid books found in cart.', 'warning')
+            return redirect(url_for('checkout'))
 
         cart_subtotal = round(cart_subtotal, 2)
         cart_tax = round(cart_subtotal * tax_rate, 2)
         cart_total = round(cart_subtotal + cart_tax, 2)
 
         try:
-            # Create ONE sale for the whole checkout
             sale = Sale(
                 date=datetime.utcnow(),
                 user_id=current_user.id if current_user.is_authenticated else None,
@@ -390,9 +392,8 @@ def checkout():
                 tax_rate=tax_rate
             )
             db.session.add(sale)
-            db.session.flush()  # gets sale.id before commit
+            db.session.flush()
 
-            # Create ONE SaleItem per cart item
             for item in sale_items_data:
                 sale_item = SaleItem(
                     sale_id=sale.id,
@@ -405,23 +406,26 @@ def checkout():
                 )
                 db.session.add(sale_item)
 
-                # 🔽 Reduce inventory
-                book = Book.query.get(item['book_id'])
+                # Reduce inventory
+                book = db.session.get(Book, item['book_id'])
                 if book:
                     if book.quantity < item['quantity']:
                         raise ValueError(f"Not enough stock for {book.title}")
+
                     book.quantity -= item['quantity']
 
-                    if book.quantity <= 5:
-                        existing_po = PurchaseOrder.query.filter_by(book_id=book.id, quantity=10).first()
+                    # Auto-create Purchase Order when stock is low
+                    if book.quantity <= 4:
+                        existing_po = PurchaseOrder.query.filter_by(book_id=book.id).first()
+
                         if not existing_po:
                             auto_po = PurchaseOrder(
                                 book_id=book.id,
                                 quantity=10
                             )
-                            db.session.add(auto_po)   
-                        
-            db.session.commit()             
+                            db.session.add(auto_po)
+
+            db.session.commit()
 
             flash(
                 f'Sale completed successfully! '
@@ -430,7 +434,11 @@ def checkout():
                 f'total after tax: ${cart_total:.2f}',
                 'success'
             )
-            return redirect(url_for('sales_history'))
+
+            if current_user.is_authenticated:
+                return redirect(url_for('sales_history'))
+            else:
+                return redirect(url_for('books'))
 
         except Exception as e:
             db.session.rollback()
@@ -443,7 +451,6 @@ def checkout():
 def receipt(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     return render_template("receipt.html", sale=sale)
-
 # --------------------------
 # Sales History
 # --------------------------

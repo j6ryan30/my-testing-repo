@@ -7,10 +7,11 @@
     <div class="col-md-4">
         <h3 class="text-center mb-4">🔐 Login</h3>
 
-        <form method="POST" class="mt-4">
+        <form method="POST" autocomplete="off">
             <div class="mb-3">
                 <label class="form-label">Username</label>
-                <input type="text"
+                <input type="text" name="username" class="form-control" autocomplete="username">
+                <input type="password" name="password" class="form-control" autocomplete="new-password">
                        name="username"
                        class="form-control"
                        placeholder="Enter username"
