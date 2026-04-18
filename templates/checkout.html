@@ -143,7 +143,7 @@
     const taxRateInput = document.getElementById('tax_rate_input');
     const checkoutForm = document.getElementById('checkout_form');
 
-    let cart = [];
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
     function formatMoney(value) {
         return `$${value.toFixed(2)}`;
@@ -221,35 +221,37 @@ function calculateTotals() {
     }
 
     function removeFromCart(index) {
-        cart.splice(index, 1);
-        renderCart();
-    }
-
+    cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
     function addToCart() {
-        const selectedBook = getSelectedBookData();
+    const selectedBook = getSelectedBookData();
 
-        if (!selectedBook) {
-            alert('Please select a book.');
-            return;
-        }
-
-        if (!selectedBook.quantity || selectedBook.quantity < 1) {
-            alert('Please enter a valid quantity.');
-            return;
-        }
-
-        const existingItem = cart.find(item => item.id === selectedBook.id);
-
-        if (existingItem) {
-            existingItem.quantity += selectedBook.quantity;
-        } else {
-            cart.push(selectedBook);
-        }
-
-        qtyInput.value = 1;
-        select.value = '';
-        renderCart();
+    if (!selectedBook) {
+        alert('Please select a book.');
+        return;
     }
+
+    if (!selectedBook.quantity || selectedBook.quantity < 1) {
+        alert('Please enter a valid quantity.');
+        return;
+    }
+
+    const existingItem = cart.find(item => item.id === selectedBook.id);
+
+    if (existingItem) {
+        existingItem.quantity += selectedBook.quantity;
+    } else {
+        cart.push(selectedBook);
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+
+    qtyInput.value = 1;
+    select.value = '';
+    renderCart();
+}
 
     async function handleScan() {
         const scannedValue = scanner.value.trim();
@@ -277,6 +279,7 @@ function calculateTotals() {
 
     clearCartBtn.addEventListener('click', () => {
         cart = [];
+        localStorage.removeItem("cart");
         renderCart();
     });
 
@@ -286,6 +289,7 @@ checkoutForm.addEventListener('submit', function (e) {
     if (cart.length === 0) {
         e.preventDefault();
         alert('Cart is empty.');
+        localStorage.removeItem("cart");
         return;
     }
 
@@ -303,7 +307,7 @@ checkoutForm.addEventListener('submit', function (e) {
 
     renderCart();
     calculateTotals();
-
+S
     
 </script>
 {% endblock %}

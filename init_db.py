@@ -2,7 +2,7 @@ from app import app, db, User, Book, Supplier
 
 def init_db():
     with app.app_context():
-        db.drop_all()     
+        
         db.create_all()
 
     admin_usernames = [

@@ -3,7 +3,7 @@ import json
 import hashlib
 from datetime import datetime
 from functools import wraps
-
+from sqlalchemy import or_
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -214,11 +214,25 @@ def inventory():
     return render_template('inventory.html', books=books, os=os, search=search)
 
 
+from sqlalchemy import or_
+
 @app.route('/books')
 def books():
-    all_books = Book.query.all()
-    return render_template('books.html', books=all_books)
+    query = request.args.get('q', '').strip()
 
+    books_query = Book.query
+
+    if query:
+        books_query = books_query.filter(
+            or_(
+                Book.title.ilike(f"%{query}%"),
+                Book.author.ilike(f"%{query}%"),
+                Book.isbn.ilike(f"%{query}%")
+            )
+        )
+
+    books = books_query.all()
+    return render_template('books.html', books=books, query=query)
 # ==================== BOOK ACTIONS ====================
 
 @app.route('/add_book', methods=['GET', 'POST'])
