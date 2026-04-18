@@ -35,6 +35,21 @@
         <h1>📦 Book Inventory</h1>
         <a href="{{ url_for('add_book') }}" class="btn btn-primary btn-add">+ Add New Book</a>
     </div>
+<form method="GET" action="{{ url_for('inventory') }}" class="mb-4">
+    <div class="input-group">
+        <input
+            type="text"
+            name="search"
+            class="form-control"
+            placeholder="Search by title, author, or ISBN"
+            value="{{ search or '' }}"
+        >
+        <button type="submit" class="btn btn-dark">Search</button>
+        {% if search %}
+        <a href="{{ url_for('inventory') }}" class="btn btn-outline-secondary">Clear</a>
+        {% endif %}
+    </div>
+</form>
 
     {% if books %}
     <div class="books-table">
