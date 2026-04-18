@@ -17,7 +17,11 @@ app = Flask(__name__)
 
 # Security & Database Config
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/bookstore.db'
+
+# Ensure instance folder exists
+os.makedirs(app.instance_path, exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'bookstore.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
