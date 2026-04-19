@@ -1,62 +1,313 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="container mt-4">
+    <h2 class="mb-4">Smart Checkout</h2>
 
-    <h2>Checkout</h2>
+    <div class="row">
+        <!-- Left: Add Items -->
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body bg-light">
+                    <h5>Add Book to Cart</h5>
 
-    <form method="POST">
+                    <input type="text"
+                           id="barcode_scanner"
+                           class="form-control mb-3 border-danger shadow-sm"
+                           placeholder="[CLICK HERE TO SCAN]"
+                           autofocus>
 
-        <div class="mb-3">
+                    <div class="mb-3">
+                        <label class="form-label">Select Book</label>
+                        <select id="book_select" class="form-select" required>
+                            <option value="">-- Manual Selection --</option>
+                            {% for book in books %}
+                            <option value="{{ book.id }}"
+                                    data-price="{{ book.price }}"
+                                    data-title="{{ book.title }}"
+                                    data-isbn="{{ book.isbn }}">
+                                {{ book.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-            <label>Select Book</label>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number"
+                               id="qty_input"
+                               class="form-control"
+                               value="1"
+                               min="1">
+                    </div>
 
-            <select
-                name="book_id"
-                class="form-control"
-                required
-            >
+                    <div class="mb-3">
+                        <label class="form-label">State Tax</label>
+                        <select id="state_select" class="form-select">
+                            <option value="Maryland" data-rate="0.06" selected>Maryland (6%)</option>
+                            <option value="Delaware" data-rate="0.00">Delaware (0%)</option>
+                            <option value="Pennsylvania" data-rate="0.06">Pennsylvania (6%)</option>
+                            <option value="Indiana" data-rate="0.07">Indiana (7%)</option>
+                            <option value="New York" data-rate="0.04">New York (4%)</option>
+                            <option value="Massachusetts" data-rate="0.0625">Massachusetts (6.25%)</option>
+                            <option value="California" data-rate="0.0725">California (7.25%)</option>
+                            <option value="Oregon" data-rate="0.00">Oregon (0%)</option>
+                        </select>   
+                    </div>
 
-                {% for book in books %}
-
-                <option value="{{ book.id }}">
-
-                    {{ book.title }} - ${{ "%.2f"|format(book.price) }}
-
-                </option>
-
-                {% endfor %}
-
-            </select>
-
+                    <button type="button" id="add_to_cart_btn" class="btn btn-danger w-100 rounded-pill shadow">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="mb-3">
+        <!-- Right: Cart + Totals -->
+        <div class="col-md-7">
+            <div class="card shadow border-dark">
+                <div class="card-header bg-dark text-white text-center">
+                    <h5 class="mb-0">Transaction Summary</h5>
+                </div>
 
-            <label>Quantity</label>
+                <div class="card-body">
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Book</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Line Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart_table_body">
+                                <tr id="empty_cart_row">
+                                    <td colspan="5" class="text-center text-muted">Cart is empty</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-            <input
-                type="number"
-                name="quantity"
-                min="1"
-                value="1"
-                class="form-control"
-                required
-            >
+                    <div class="border rounded p-3 bg-light">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Subtotal:</strong>
+                            <span id="subtotal_display">$0.00</span>
+                        </div>
 
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Tax:</strong>
+                            <span id="tax_display">$0.00</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <span id="total_display" class="text-danger fw-bold">$0.00</span>
+                        </div>
+
+                        <form method="POST" id="checkout_form">
+                            <input type="hidden" name="cart_data" id="cart_data_input">
+                            <input type="hidden" name="tax_rate" id="tax_rate_input" value="0.06">
+                            <input type="hidden" name="tax_state" id="tax_state_input" value="Maryland">
+
+                            <div class="d-grid gap-2">
+
+                        <button type="submit" id="complete_sale_btn" class="btn btn-success" disabled>
+                                    Complete Sale
+                                </button>
+                                <button type="button" id="clear_cart_btn" class="btn btn-outline-secondary">
+                                    Clear Cart
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <button
-            type="submit"
-            class="btn btn-primary"
-        >
-
-            Complete Sale
-
-        </button>
-
-    </form>
-
+    </div>
 </div>
 
+<script>
+    const scanner = document.getElementById('barcode_scanner');
+    const select = document.getElementById('book_select');
+    const qtyInput = document.getElementById('qty_input');
+    const stateSelect = document.getElementById('state_select');
+    const taxStateInput = document.getElementById('tax_state_input');
+    const addToCartBtn = document.getElementById('add_to_cart_btn');
+    const completeSaleBtn = document.getElementById('complete_sale_btn');
+    const clearCartBtn = document.getElementById('clear_cart_btn');
+    const cartTableBody = document.getElementById('cart_table_body');
+    const subtotalDisplay = document.getElementById('subtotal_display');
+    const taxDisplay = document.getElementById('tax_display');
+    const totalDisplay = document.getElementById('total_display');
+    const cartDataInput = document.getElementById('cart_data_input');
+    const taxRateInput = document.getElementById('tax_rate_input');
+    const checkoutForm = document.getElementById('checkout_form');
+
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+    function formatMoney(value) {
+        return `$${value.toFixed(2)}`;
+    }
+
+    function getSelectedBookData() {
+        const option = select.options[select.selectedIndex];
+        if (!option || !option.value) return null;
+
+        return {
+            id: option.value,
+            title: option.dataset.title,
+            isbn: option.dataset.isbn,
+            price: parseFloat(option.dataset.price),
+            quantity: parseInt(qtyInput.value, 10)
+        };
+    }
+
+function calculateTotals() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    const selectedOption = stateSelect.options[stateSelect.selectedIndex];
+    const taxRate = parseFloat(selectedOption.dataset.rate);
+    const taxState = selectedOption.value;
+
+    const tax = +(subtotal * taxRate).toFixed(2);
+    const total = +(subtotal + tax).toFixed(2);
+
+    subtotalDisplay.innerText = formatMoney(subtotal);
+    taxDisplay.innerText = formatMoney(tax);
+    totalDisplay.innerText = formatMoney(total);
+
+    taxRateInput.value = taxRate;
+    taxStateInput.value = taxState;
+    cartDataInput.value = JSON.stringify(cart);
+
+    completeSaleBtn.disabled = cart.length === 0;
+}
+    
+    function renderCart() {
+        cartTableBody.innerHTML = '';
+
+        if (cart.length === 0) {
+            cartTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Cart is empty</td>
+                </tr>
+            `;
+            calculateTotals();
+            return;
+        }
+
+        cart.forEach((item, index) => {
+            const lineTotal = item.price * item.quantity;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="fw-bold">${item.title}</div>
+                    <div class="small text-muted">${item.isbn}</div>
+                </td>
+                <td>${item.quantity}</td>
+                <td>${formatMoney(item.price)}</td>
+                <td>${formatMoney(lineTotal)}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
+                        Remove
+                    </button>
+                </td>
+            `;
+            cartTableBody.appendChild(row);
+        });
+
+        calculateTotals();
+    }
+
+    function removeFromCart(index) {
+    cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+    function addToCart() {
+    const selectedBook = getSelectedBookData();
+
+    if (!selectedBook) {
+        alert('Please select a book.');
+        return;
+    }
+
+    if (!selectedBook.quantity || selectedBook.quantity < 1) {
+        alert('Please enter a valid quantity.');
+        return;
+    }
+
+    const existingItem = cart.find(item => item.id === selectedBook.id);
+
+    if (existingItem) {
+        existingItem.quantity += selectedBook.quantity;
+    } else {
+        cart.push(selectedBook);
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+
+    qtyInput.value = 1;
+    select.value = '';
+    renderCart();
+}
+
+    async function handleScan() {
+        const scannedValue = scanner.value.trim();
+        if (!scannedValue) return;
+
+        try {
+            const res = await fetch(`/api/check_book/${scannedValue}`);
+            const data = await res.json();
+
+            if (data.success) {
+                select.value = data.id;
+                qtyInput.focus();
+            } else {
+                alert("Book not found in system.");
+            }
+        } catch (error) {
+            alert("Error checking scanned barcode.");
+        }
+
+        scanner.value = '';
+    }
+
+    addToCartBtn.addEventListener('click', addToCart);
+    stateSelect.addEventListener('change', calculateTotals);
+
+    clearCartBtn.addEventListener('click', () => {
+        cart = [];
+        localStorage.removeItem("cart");
+        renderCart();
+    });
+
+    scanner.addEventListener('change', handleScan);
+
+checkoutForm.addEventListener('submit', function (e) {
+    if (cart.length === 0) {
+        e.preventDefault();
+        alert('Cart is empty.');
+        localStorage.removeItem("cart");
+        return;
+    }
+
+    const selectedOption = stateSelect.options[stateSelect.selectedIndex];
+    const taxRate = parseFloat(selectedOption.dataset.rate);
+    const taxState = selectedOption.value;
+
+    cartDataInput.value = JSON.stringify(cart);
+    taxRateInput.value = taxRate;
+    taxStateInput.value = taxState;
+});
+
+
+    window.removeFromCart = removeFromCart;
+
+    renderCart();
+    calculateTotals();
+S
+    
+</script>
 {% endblock %}

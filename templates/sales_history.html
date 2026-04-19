@@ -1,26 +1,60 @@
 {% extends "base.html" %}
+
+{% block title %}Sales History - Noble Bookstore{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2>Sales History</h2>
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Subtotal</th>
-                <th>Tax</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in sales %}
-            <tr>
-                <td>{{ sale.date.strftime("%Y-%m-%d %H:%M") }}</td>
-                <td>${{ "%.2f"|format(sale.subtotal) }}</td>
-                <td>${{ "%.2f"|format(sale.tax) }}</td>
-                <td>${{ "%.2f"|format(sale.total) }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h3>Sales History & Revenue</h3>
+
+    {% for sale in sales %}
+    <div class="card shadow-sm mt-3">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><strong>Transaction #{{ sale.id }}</strong></span>
+            <span>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <span class="me-3"><strong>State:</strong> {{ sale.tax_state or 'N/A' }}</span>
+                <span><strong>Tax Rate:</strong> {{ "%.2f"|format(sale.tax_rate * 100) }}%</span>
+            </div>
+
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Book Title</th>
+                        <th>ISBN</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sale.items %}
+                    <tr>
+                        <td><strong>{{ item.book_title }}</strong></td>
+                        <td><small class="text-muted">{{ item.book_isbn }}</small></td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ "%.2f"|format(item.unit_price) }}</td>
+                        <td>${{ "%.2f"|format(item.line_subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="text-end mt-3">
+                <p class="mb-1"><strong>Subtotal:</strong> ${{ "%.2f"|format(sale.subtotal) }}</p>
+                <p class="mb-1"><strong>Tax:</strong> ${{ "%.2f"|format(sale.tax) }}</p>
+                <p class="mb-2 fw-bold text-danger"><strong>Total:</strong> ${{ "%.2f"|format(sale.total) }}</p>
+
+                <a href="{{ url_for('receipt', sale_id=sale.id) }}" class="btn btn-sm btn-outline-dark">
+                    Print Receipt
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">No sales history found.</div>
+    {% endfor %}
 </div>
 {% endblock %}

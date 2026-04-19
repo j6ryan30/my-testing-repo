@@ -2,14 +2,69 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">📊 Dashboard</h1>
-   <p>
-Welcome,
-<strong>{{ session.username }}</strong>
-({{ session.role }})
-</p>
 
+    <h1 class="mb-4">📊 Dashboard</h1>
+
+    <div class="welcome-section mb-4">
+        <h3 class="fw-bold">Welcome, {{ current_user.username }}!</h3>
+        {% if current_user.role %}
+            <span class="badge bg-secondary">{{ current_user.role|capitalize }}</span>
+        {% endif %}
+    </div>
+
+    <!-- 🔥 STATS CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Revenue</h6>
+                    <h3 class="text-success">${{ "%.2f"|format(total_revenue) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Transactions</h6>
+                    <h3>{{ total_transactions }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Low Stock Items</h6>
+                    <h3 class="text-danger">{{ low_stock_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100 text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Books</h6>
+                    <h3>{{ total_books }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100 text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Purchase Orders</h6>
+                    <h3>{{ total_purchase_orders }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXISTING NAVIGATION CARDS -->
     <div class="row g-4">
+
         <!-- Checkout Card -->
         <div class="col-md-4">
             <div class="card text-white bg-primary h-100">
@@ -27,7 +82,7 @@ Welcome,
                 <div class="card-body">
                     <h5 class="card-title">📚 Books</h5>
                     <p class="card-text">View and manage book inventory.</p>
-                    <a href="{{ url_for('books') }}" class="btn btn-light">Go</a>
+                    <a href="{{ url_for('inventory') }}" class="btn btn-light">Go</a>
                 </div>
             </div>
         </div>
@@ -75,6 +130,7 @@ Welcome,
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 {% endblock %}

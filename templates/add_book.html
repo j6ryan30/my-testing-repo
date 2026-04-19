@@ -1,175 +1,54 @@
 {% extends "base.html" %}
 
-{% block content %}
-<<<<<<< HEAD
-<div class="form-container">
-    <div class="form-box">
-        <h1>Add New Book</h1>
-        
-        <form method="POST" class="book-form">
-            {{ form.hidden_tag() }}
-            
-            <div class="form-group">
-                {{ form.title.label(class="form-label") }}
-                {{ form.title(class="form-control") }}
-                {% if form.title.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.title.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                {{ form.author.label(class="form-label") }}
-                {{ form.author(class="form-control") }}
-                {% if form.author.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.author.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-               {{ form.isbn.label(class="form-label") }}
-                {{ form.isbn(class="form-control") }}
-                {% if form.isbn.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.isbn.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                {{ form.quantity.label(class="form-label") }}
-                {{ form.quantity(class="form-control") }}
-                {% if form.quantity.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.quantity.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-<div class="form-group">
-                {{ form.price.label(class="form-label") }}
-                {{ form.price(class="form-control") }}
-                {% if form.price.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.price.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+{% block title %}Add New Book - Noble Bookstore{% endblock %}
 
-            <div class="form-group">
-                {{ form.description.label(class="form-label") }}
-                {{ form.description(class="form-control") }}
-                {% if form.description.errors %}
-                    <ul class="form-errors">
-                        {% for error in form.description.errors %}
-                            <li class="error-message">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
-            <div class="form-actions">
-                {{ form.submit(class="action-button") }}
-                <a href="{{ url_for('inventory') }}" class="action-button action-button--secondary">Cancel</a>
-            </div>
-        </form>
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="mb-4">➕ Add New Book</h1>
+            <hr>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.title.label(class="form-label") }}
+                    {{ form.title(class="form-control") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.author.label(class="form-label") }}
+                    {{ form.author(class="form-control") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.isbn.label(class="form-label") }}
+                    {{ form.isbn(class="form-control", placeholder="13-digit ISBN") }}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.price.label(class="form-label") }}
+                        {{ form.price(class="form-control") }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {{ form.quantity.label(class="form-label") }}
+                        {{ form.quantity(class="form-control") }}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows="4", placeholder="Enter book summary...") }}
+                </div>
+
+                <div class="d-flex gap-2">
+                    {{ form.submit(class="btn btn-primary px-4") }}
+                    <a href="{{ url_for('inventory') }}" class="btn btn-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-{% endblock %}    
-
-            
-=======
-<div class="container mt-4">
-
-    <h2>➕ Add New Book</h2>
-
-    <form method="POST" action="{{ url_for('add_book') }}">
-
-        <div class="mb-3">
-            <label class="form-label">Title</label>
-
-            <input
-                type="text"
-                name="title"
-                class="form-control"
-                required
-            >
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Author</label>
-
-            <input
-                type="text"
-                name="author"
-                class="form-control"
-                required
-            >
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">ISBN</label>
-
-            <input
-                type="text"
-                name="isbn"
-                class="form-control"
-                required
-            >
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Price ($)</label>
-
-            <input
-                type="number"
-                name="price"
-                step="0.01"
-                min="0"
-                class="form-control"
-                required
-            >
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Quantity</label>
-
-            <input
-                type="number"
-                name="quantity"
-                min="0"
-                class="form-control"
-                required
-            >
-        </div>
-
-        <button
-            type="submit"
-            class="btn btn-success"
-        >
-            Add Book
-        </button>
-
-        <a
-            href="{{ url_for('books') }}"
-            class="btn btn-secondary"
-        >
-            Cancel
-        </a>
-
-    </form>
-
-</div>
 {% endblock %}
->>>>>>> 2235a09 (Save current bookstore changes before pull)

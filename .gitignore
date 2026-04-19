@@ -1,9 +1,8 @@
 venv/
 .env
-books.db
+bookstore.db
 static/barcodes/
 __pycache__/
 *.pyc
 instance/
-.env
-venv/
+*.db

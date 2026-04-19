@@ -14,123 +14,34 @@ body {
     justify-content: center;
     align-items: center;
 
-    background: linear-gradient(-45deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
-    background-size: 400% 400%;
-    animation: gradientMove 10s ease infinite;
-    font-family: Arial, sans-serif;
-}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h3 class="text-center mb-4">🔐 Login</h3>
 
-@keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+        <form method="POST" autocomplete="off">
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text"
+                       name="username"
+                       class="form-control"
+                       placeholder="Enter username"
+                       required
+                       autocomplete="off">
+            </div>
 
-.login-card {
-    width: 100%;
-    max-width: 420px;
-    padding: 30px;
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password"
+                       name="password"
+                       class="form-control"
+                       placeholder="Enter password"
+                       required
+                       autocomplete="new-password">
+            </div>
 
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    color: white;
-}
-
-.title {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-
-.form-control {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-}
-
-.form-control::placeholder {
-    color: rgba(255,255,255,0.7);
-}
-
-.btn-login {
-    background: #ffffff;
-    color: #2a5298;
-    font-weight: bold;
-}
-
-.flash {
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-.flash.success { background: #28a745; }
-.flash.danger { background: #dc3545; }
-.flash.warning { background: #ffc107; color: black; }
-
-.password-wrapper {
-    position: relative;
-}
-
-.toggle-pass {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: white;
-}
-</style>
-</head>
-
-<body>
-
-<div class="login-card">
-
-    <h3 class="title">📚 Noble Bookstore</h3>
-    <p class="text-center">Team Login Portal</p>
-
-    <!-- FLASH -->
-   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
-
-    <!-- 🔥 FIXED FORM -->
-    <form method="POST" action="{{ url_for('login') }}">
-
-        <div class="mb-3">
-            <label>Username</label>
-            <input type="text" name="username" class="form-control" placeholder="Enter username" required>
-        </div>
-
-        <div class="mb-3 password-wrapper">
-            <label>Password</label>
-            <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-            <span class="toggle-pass" onclick="togglePassword()">👁</span>
-        </div>
-
-        <button type="submit" class="btn btn-login w-100">
-            Login
-           
-        </button>
-
-    </form>
-
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+    </div>
 </div>
-
-<script>
-function togglePassword() {
-    const pass = document.getElementById("password");
-    pass.type = pass.type === "password" ? "text" : "password";
-}
-</script>
-
-</body>
-</html>
+{% endblock %}

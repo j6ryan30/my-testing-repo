@@ -1,32 +1,23 @@
 from app import app, db, User, Book, Supplier
-# =========================
-# 1. Create Users (FIXED ROLES)
-# =========================
-users_to_create = [
-    ('admin', 'admin123', 'admin'),
-    ('ROwens03', 'ROwens03', 'admin'),
-    ('J0spina02', 'J0spina02', 'admin'),
-    ('EBarreno01', 'EBarreno01', 'admin'),
-    ('KPeekSM', 'KPeekSM', 'admin'),
-    ('CPowersQA', 'CPowersQA', 'admin'),
 
-    # regular users (NO ADMIN ACCESS)
-    ('FAlmarasi01', 'FAlmarasi01', 'user'),
-    ('SShad02', 'SShad02', 'user')
-]
+def init_db():
+    with app.app_context():
+        
+        db.create_all()
 
-for username, password, role in users_to_create:
-    existing_user = User.query.filter_by(username=username).first()
+    admin_usernames = [
+        'EBarreno01', 'JOspina02', 'ROwens03',
+        'KPeekSM', 'CPowers04', 'FAlmarasiFadi01', 'SShad02'
+    ]
 
-    if not existing_user:
-        new_user = User(
-            username=username,
-            role=role
-        )
-        new_user.set_password(password)
-        db.session.add(new_user)
-
-        print(f"✅ USER CREATED: {username} ({role})")
+    print("\n" + "=" * 40)
+    for username in admin_usernames:
+        existing_user = User.query.filter_by(username=username).first()
+        if not existing_user:
+            new_user = User(username=username, role='admin')
+            new_user.set_password(username)
+            db.session.add(new_user)
+            print(f"✅ ADMIN CREATED: {username}")
 
     demo_books = [
         {'title': 'The Great Gatsby', 'author': 'F. Scott Fitzgerald', 'isbn': '9780743273565', 'price': 15.00, 'qty': 10, 'description': 'Classic American novel set in the Jazz Age.'},

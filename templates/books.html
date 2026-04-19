@@ -1,42 +1,148 @@
 {% extends "base.html" %}
 
+{% block title %}Books - Noble Bookstore{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">📚 Book Inventory</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📚 Noble Bookstore Collection</h2>
+        <div>
+            <span class="badge bg-dark me-2">{{ books|length }} Titles Available</span>
+            <a href="{{ url_for('checkout') }}" class="btn btn-outline-primary">
+                View Cart (<span id="cart-count">0</span>)
+            </a>
+        </div>
+    </div>
 
-    <!-- Add New Book Button -->
-    <a href="{{ url_for('add_book') }}" class="btn btn-success mb-3">➕ Add New Book</a>
+    <form method="GET" action="{{ url_for('books') }}" class="mb-4">
+        <div class="input-group">
+            <input
+                type="text"
+                name="q"
+                class="form-control"
+                placeholder="Search by title, author, or ISBN"
+                value="{{ query or '' }}"
+            >
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a href="{{ url_for('books') }}" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
 
-    <!-- Books Table -->
-    <table class="table table-bordered table-striped table-hover">
-        <thead class="table-dark">
-       <tr>
-    <th>ID</th>
-    <th>Title</th>
-    <th>Author</th>
-    <th>ISBN</th>
-    <th>Price</th>
-    <th>Quantity</th>
-    <th>Actions</th>
-</tr>
-        </thead>
-        <tbody>
-            {% for book in books %}
-            <tr>
-                <td>{{ book.id }}</td>
-                <td>{{ book.title }}</td>
-                <td>{{ book.author }}</td>
-                <td>{{ book.isbn }}</td>
-                <td>${{ book.price }}</td>
-                <td>{{ book.quantity }}</td>
-                <td>
-                    <a href="{{ url_for('generate_barcode', book_id=book.id) }}" class="btn btn-sm btn-warning">Barcode</a>
-                    <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-sm btn-primary">Edit</a>
-                    <a href="{{ url_for('delete_book', book_id=book.id) }}" class="btn btn-sm btn-danger">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if books %}
+    <div class="row">
+        {% for book in books %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-dark">
+                <div class="card-header bg-light text-center py-4">
+                    <i class="fas fa-book fa-3x text-muted"></i>
+                </div>
+
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title fw-bold text-primary">{{ book.title }}</h5>
+                    <p class="card-text text-muted mb-1">by {{ book.author }}</p>
+                    <p class="card-text">
+                        <small class="text-uppercase text-secondary">ISBN: {{ book.isbn }}</small>
+                    </p>
+
+                    {% if book.description %}
+                    <p class="card-text">
+                        {{ book.description[:120] }}{% if book.description|length > 120 %}...{% endif %}
+                    </p>
+                    {% endif %}
+
+                    <h4 class="mt-auto text-success fw-bold">${{ "%.2f"|format(book.price) }}</h4>
+
+                    <hr>
+
+                    {% if book.quantity > 0 %}
+                    <p class="text-muted"><small>In Stock: {{ book.quantity }}</small></p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn btn-outline-dark">
+                            View Details
+                        </a>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-success add-to-cart-btn"
+                            data-book-id="{{ book.id }}"
+                            data-book-title="{{ book.title }}"
+                            data-book-price="{{ '%.2f'|format(book.price) }}"
+                        >
+                            Add to Cart
+                        </button>
+
+                        <form method="POST" action="{{ url_for('checkout') }}">
+                            <input type="hidden" name="cart_data" value='[{"id": {{ book.id }}, "quantity": 1}]'>
+                            <input type="hidden" name="tax_rate" value="0.06">
+                            <input type="hidden" name="tax_state" value="Unknown">
+                            <button type="submit" class="btn btn-primary w-100">Buy Now</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <p class="text-danger"><small>Out of Stock</small></p>
+                    <button class="btn btn-secondary w-100" disabled>Sold Out</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        No books found matching your search.
+    </div>
+    {% endif %}
 </div>
+
+<script>
+function getCart() {
+    return JSON.parse(localStorage.getItem("cart") || "[]");
+}
+
+function saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+}
+
+function updateCartCount() {
+    const cart = getCart();
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const cartCount = document.getElementById("cart-count");
+    if (cartCount) {
+        cartCount.textContent = totalItems;
+    }
+}
+
+function addToCart(bookId, title, price) {
+    let cart = getCart();
+    const existing = cart.find(item => item.id === bookId);
+
+    if (existing) {
+        existing.quantity += 1;
+    } else {
+        cart.push({
+            id: bookId,
+            title: title,
+            price: parseFloat(price),
+            quantity: 1
+        });
+    }
+
+    saveCart(cart);
+    alert('"' + title + '" added to cart.');
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    updateCartCount();
+
+    document.querySelectorAll(".add-to-cart-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const bookId = parseInt(this.dataset.bookId);
+            const title = this.dataset.bookTitle;
+            const price = this.dataset.bookPrice;
+            addToCart(bookId, title, price);
+        });
+    });
+});
+</script>
 {% endblock %}
