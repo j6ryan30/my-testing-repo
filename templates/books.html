@@ -4,35 +4,66 @@
 
 {% block content %}
 <div class="container mt-4">
+
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>📚 Noble Bookstore Collection</h2>
         <div>
-            <span class="badge bg-dark me-2">{{ books|length }} Titles Available</span>
+            <span class="badge bg-dark me-2">
+                {{ pagination.total if pagination else books|length }} Titles Available
+            </span>
             <a href="{{ url_for('checkout') }}" class="btn btn-outline-primary">
                 View Cart (<span id="cart-count">0</span>)
             </a>
         </div>
     </div>
 
+    <!-- Category + Search -->
     <form method="GET" action="{{ url_for('books') }}" class="mb-4">
+
+        <!-- Category Filter -->
+        <div class="input-group mb-3">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                <option value="Fantasy" {% if request.args.get('category') == 'Fantasy' %}selected{% endif %}>Fantasy</option>
+                <option value="Manga" {% if request.args.get('category') == 'Manga' %}selected{% endif %}>Manga</option>
+                <option value="Classics" {% if request.args.get('category') == 'Classics' %}selected{% endif %}>Classics</option>
+                <option value="Sci-Fi" {% if request.args.get('category') == 'Sci-Fi' %}selected{% endif %}>Sci-Fi</option>
+                <option value="Fiction" {% if request.args.get('category') == 'Fiction' %}selected{% endif %}>Fiction</option>
+                <option value="Nonfiction" {% if request.args.get('category') == 'Nonfiction' %}selected{% endif %}>Nonfiction</option>
+                <option value="Religion & Inspirational" {% if request.args.get('category') == 'Religion & Inspirational' %}selected{% endif %}>Religion & Inspirational</option>
+                <option value="Kids / Young Readers" {% if request.args.get('category') == 'Kids / Young Readers' %}selected{% endif %}>Kids / Young Readers</option>
+            </select>
+        </div>
+
+        <!-- Search Bar -->
         <div class="input-group">
             <input
                 type="text"
                 name="q"
                 class="form-control"
                 placeholder="Search by title, author, or ISBN"
-                value="{{ query or '' }}"
+                value="{{ request.args.get('q', '') }}"
             >
             <button type="submit" class="btn btn-primary">Search</button>
             <a href="{{ url_for('books') }}" class="btn btn-outline-secondary">Clear</a>
         </div>
     </form>
 
+    <!-- Book Grid -->
     {% if books %}
     <div class="row">
         {% for book in books %}
         <div class="col-md-4 mb-4">
             <div class="card h-100 shadow-sm border-dark">
+
+                <!-- Featured Badge -->
+                {% if book.featured %}
+                <div class="position-absolute top-0 start-0 m-2">
+                    <span class="badge bg-warning text-dark">Featured</span>
+                </div>
+                {% endif %}
+
                 <div class="card-header bg-light text-center py-4">
                     <i class="fas fa-book fa-3x text-muted"></i>
                 </div>
@@ -61,13 +92,25 @@
                             View Details
                         </a>
 
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <button class="btn btn-outline-secondary btn-sm qty-minus" data-book-id="{{ book.id }}">−</button>
+                            <span id="qty-display-{{ book.id }}" class="mx-2 fw-bold">1</span>
+                            <button class="btn btn-outline-secondary btn-sm qty-plus" data-book-id="{{ book.id }}">+</button>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <button class="btn btn-outline-secondary btn-sm qty-minus" data-book-id="{{ book.id }}">−</button>
+                            <span id="qty-display-{{ book.id }}" class="mx-2 fw-bold">1</span>
+                            <button class="btn btn-outline-secondary btn-sm qty-plus" data-book-id="{{ book.id }}">+</button>
+                        </div>
+
                         <button
                             type="button"
                             class="btn btn-outline-success add-to-cart-btn"
                             data-book-id="{{ book.id }}"
                             data-book-title="{{ book.title }}"
                             data-book-price="{{ '%.2f'|format(book.price) }}"
-                        >
+>
                             Add to Cart
                         </button>
 
@@ -87,6 +130,42 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if pagination %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="{{ url_for('books', page=pagination.prev_num, q=request.args.get('q'), category=request.args.get('category')) }}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Page {{ pagination.page }} of {{ pagination.pages }}
+                    </span>
+                </li>
+
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="{{ url_for('books', page=pagination.next_num, q=request.args.get('q'), category=request.args.get('category')) }}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
     {% else %}
     <div class="alert alert-warning">
         No books found matching your search.
@@ -94,6 +173,7 @@
     {% endif %}
 </div>
 
+<!-- Cart Logic -->
 <script>
 function getCart() {
     return JSON.parse(localStorage.getItem("cart") || "[]");
@@ -113,24 +193,56 @@ function updateCartCount() {
     }
 }
 
-function addToCart(bookId, title, price) {
+function addToCart(bookId, title, price, quantity = 1) {
     let cart = getCart();
     const existing = cart.find(item => item.id === bookId);
 
     if (existing) {
-        existing.quantity += 1;
+        existing.quantity += quantity;
     } else {
         cart.push({
             id: bookId,
             title: title,
             price: parseFloat(price),
-            quantity: 1
+            quantity: quantity
         });
     }
 
     saveCart(cart);
-    alert('"' + title + '" added to cart.');
+    alert(`${quantity} × "${title}" added to cart.`);
 }
+
+    saveCart(cart);
+    alert('"' + title + '" added to cart.');
+
+
+document.querySelectorAll(".qty-plus").forEach(btn => {
+    btn.addEventListener("click", function () {
+        const id = this.dataset.bookId;
+        const display = document.getElementById(`qty-display-${id}`);
+        display.textContent = parseInt(display.textContent) + 1;
+    });
+});
+
+document.querySelectorAll(".qty-minus").forEach(btn => {
+    btn.addEventListener("click", function () {
+        const id = this.dataset.bookId;
+        const display = document.getElementById(`qty-display-${id}`);
+        const current = parseInt(display.textContent);
+        if (current > 1) display.textContent = current - 1;
+    });
+});
+
+document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+        const id = parseInt(this.dataset.bookId);
+        const title = this.dataset.bookTitle;
+        const price = this.dataset.bookPrice;
+        const qty = parseInt(document.getElementById(`qty-display-${id}`).textContent);
+        addToCart(id, title, price, qty);
+    });
+});
+
 
 document.addEventListener("DOMContentLoaded", function () {
     updateCartCount();
